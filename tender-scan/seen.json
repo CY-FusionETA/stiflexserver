@@ -1,1 +1,37 @@
-{}
+{
+  "CEDD::GE-2026-18": {
+    "title": "Provision of Concrete Testing Services for the Public Works Laboratories – 2027 Package 1 (Term Contract)",
+    "source": "CEDD",
+    "first_seen": "2026-09-15"
+  },
+  "CEDD::GE-2026-04": {
+    "title": "Landslip Prevention and Mitigation Programme, Kowloon and New Territories East, Phase 1, Contract 5",
+    "source": "CEDD",
+    "first_seen": "2026-09-15"
+  },
+  "CEDD::GE-2026-36": {
+    "title": "Provision of Technical Services on Quality Assurance, Prefabrication, Supply and Use of Steel Reinforcing Bar",
+    "source": "CEDD",
+    "first_seen": "2026-09-15"
+  },
+  "CEDD::GE-2026-16-F1-F4": {
+    "title": "Framework Contracts for Provision of Steel Reinforcement",
+    "source": "CEDD",
+    "first_seen": "2026-09-15"
+  },
+  "CEDD::GE-2026-10": {
+    "title": "Landslip Prevention and Mitigation Programme, Hong Kong Island, Phase 1, Contract A",
+    "source": "CEDD",
+    "first_seen": "2026-09-15"
+  },
+  "CEDD::GE-2026-09": {
+    "title": "Landslip Prevention and Mitigation Programme, New Territories West, Phase 1, Contract B",
+    "source": "CEDD",
+    "first_seen": "2026-09-15"
+  },
+  "CEDD::GE-2026-15": {
+    "title": "Landslip Prevention and Mitigation Programme, Ground Investigation Term Contract (2026-2029), Contract 2",
+    "source": "CEDD",
+    "first_seen": "2026-09-15"
+  }
+}
