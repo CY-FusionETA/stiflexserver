@@ -10,9 +10,37 @@ Bitrix24 **Logistics Tracking Unit** workgroup chat (`chat8035`, Bitrix24
 workgroup ID 47, members include Yanyi Yap / user ID 5).
 
 This same logic runs automatically every hour from 7am to 12am (midnight)
-Malaysia/Singapore time (UTC+8) via a scheduled Routine — see "Automated
-schedule" below. Invoke this skill manually for an on-demand check or to
-debug a failure.
+Malaysia/Singapore time (UTC+8), Monday–Saturday (no monitoring Sunday), via
+a scheduled Routine — see "Automated schedule" below. Invoke this skill
+manually for an on-demand check or to debug a failure.
+
+## Alerts
+
+Besides the plain hourly location update, the script raises three alerts
+into the same chat, and can pause itself for the day:
+
+1. **Same location for over 1 hour** — if the truck hasn't moved more than
+   ~150m since the last reading that changed its position, and an hour has
+   passed, it posts `<Alias> -> 1hrs Same location` (once per stop — it
+   won't repeat until the truck moves and then stalls again).
+2. **Still at the factory by 8am** — if it's 8am or later MYT and the truck
+   is still within ~400m of the SSB (StiFlex Sdn Bhd) factory, it posts a
+   "Truck still in SSB" alert with the factory address and map link (once
+   per day).
+3. **Return-to-Malaysia, pause for the day** — once the truck's reverse-
+   geocoded location has mentioned "Singapore" at some point that day, and
+   it's later back in Malaysia, engine off, and parked 15+ minutes, the
+   script treats the round trip as done: it posts a "returned, pausing
+   until tomorrow 7am" notice and skips all further checks (silently, no
+   Bitrix post) for the rest of that calendar day. Monitoring resumes
+   automatically the next day at 7am. **Sundays are skipped entirely** (no
+   posts at all, checked first thing via the Malaysia/Singapore weekday).
+
+State (last position, alert flags, whether the round trip is done today) is
+kept in `scripts/gps-tracker/state.json`, next to this script. The script
+commits and pushes that file back to the repo itself after each run — so
+state persists across the fresh session each hourly firing gets. It resets
+automatically whenever the stored date is not today (MYT).
 
 ## How it works
 
@@ -65,8 +93,14 @@ admin (Joseph) to re-grant `im` + `socialnetwork`.
 
 ## Automated schedule
 
-A Routine named **"Truck GPS Tracking - Logistics Tracking Unit"** fires
-hourly, 7:00–24:00 Malaysia/Singapore time (UTC+8) daily (quiet 1am–6am),
-running this same script in a fresh session each time. To change the
-schedule or investigate a missed run, use `list_triggers` /
-`update_trigger` on that Routine.
+A Routine named **"Truck GPS Tracking - Logistics Tracking Unit"** (self-
+hosted on the FusionETA Server 2 pool) fires hourly, 7:00am–12:00am
+(midnight) Malaysia/Singapore time (UTC+8), every day of the week (quiet
+1am–6am), running this same script in a fresh session each time. The cron
+runs all 7 days rather than trying to exclude Sunday via day-of-week —
+Sunday-skipping is done inside the script instead (see Alerts above),
+because the local 7am–midnight window straddles two different UTC calendar
+days, which makes a UTC day-of-week filter unable to cleanly represent "skip
+Sunday, local time" without dropping Monday's 7am or Saturday's evening
+slots. To change the schedule or investigate a missed run, use
+`list_triggers` / `update_trigger` on that Routine.
