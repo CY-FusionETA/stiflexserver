@@ -30,4 +30,7 @@ Append a new dated section to /home/stiflex/stiflexserver/tender-scan/bci-scan-l
 STEP 6 — Commit and push:
 From /home/stiflex/stiflexserver: `git add tender-scan/seen.json tender-scan/bci-scan-log.md && git commit -m "BCI cron scan: <date>" && git pull --rebase && git push origin main`. Confirm the push succeeded.
 
-Do not create Bitrix24 Contacts/Leads in this run — that stays a manual, interactive step the user does later after reviewing bci-scan-log.md.
+STEP 7 — Notify (only if there is something worth coming back for):
+If — and only if — this run found one or more NEW SUITABLE projects, call the PushNotification tool with a short message under 200 characters, e.g. "BCI scan: 3 new suitable projects (Beta Warehouse, Guardhouse, ...) — ask Claude to review & create leads." If nothing new/suitable was found, do not send a notification — that's routine-nothing-happened noise, not something worth an interruption.
+
+Do not create Bitrix24 Contacts/Leads in this run, and do not use AskUserQuestion — that stays a manual step: later, in a live chat, the user (or whoever's driving the interactive session) reads bci-scan-log.md and tells Claude which projects to turn into leads, at which point the `stiflex-bitrix24` skill's "Lead custom fields for project/tender leads" mapping is used the same way as previous manual runs.

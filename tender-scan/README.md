@@ -31,9 +31,14 @@ that stays logged in:
   update, committed and pushed each run.
 - If BCI shows logged out, the run stops and logs a note asking the user to
   log back in manually — it never attempts to type the password itself.
-- This run is report-only: it does not create Bitrix24 Contacts/Leads. Review
-  `bci-scan-log.md` and ask an interactive Claude session to create leads for
-  anything worth pursuing.
+- This run is report-only: it does not create Bitrix24 Contacts/Leads and
+  never calls AskUserQuestion (there's no one there to answer in a cron
+  invocation). If new suitable projects were found, it sends a `PushNotification`
+  (reaches the user's phone via Remote Control) with a short summary. The user
+  then opens a live chat, reads `bci-scan-log.md` (or asks Claude to), and
+  tells Claude which projects to turn into Bitrix24 leads — same manual flow
+  as any other interactive run. Nothing new/suitable found → no notification,
+  just the usual dedup commit.
 
 Fit criteria and output format for the CEDD/URA scan live in the cloud
 Routine's prompt; for BCI they live in `bci-scan-prompt.txt`. Bitrix24 lead
