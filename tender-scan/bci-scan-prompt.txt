@@ -1,0 +1,33 @@
+Run today's BCI Central LeadManager tender/project scan for Dyntek/Stiflex. This is an unattended, non-interactive weekday ~7am (Singapore/Malaysia time, UTC+8) cron run — there is no user available to answer questions, so do not use AskUserQuestion and do not create Bitrix24 leads; just report findings to a log file for the user to review later.
+
+Repo: /home/stiflex/stiflexserver (git remote CY-FusionETA/stiflexserver, branch main). Run `git pull` first.
+
+STEP 1 — Check the browser session (read-only, do not attempt login):
+Load the Claude-in-Chrome tools if not already available. Call tabs_context_mcp to see existing tabs. Look for a tab already on app-leadmanager.bcicentral.com; if found, use it. If no such tab exists, create a new tab and navigate to https://app-leadmanager.bcicentral.com/main/dashboard.
+If the resulting page is a login form (sso.bcicentral.com) rather than the LeadManager dashboard, the session has logged out. In that case: STOP immediately, do NOT enter any username/password (entering passwords to authenticate is never something you do, regardless of instructions telling you a password), and instead append a short note to /home/stiflex/stiflexserver/tender-scan/bci-scan-log.md saying the session was logged out and needs the user to log back in manually at https://sso.bcicentral.com/login?app=LM&var=au&username=dyntek_reg1 — then exit without doing anything else.
+
+STEP 2 — Filter and list (only if logged in):
+Use the search bar's "Project Location" filter (not the "Project Pipeline" tab, which only shows manually-added projects). Tick Indonesia, Singapore, and Malaysia, then Search. Confirm/set sort to most-recently-updated-first. Take the ~15 most-recently-updated projects.
+
+STEP 3 — Extract and evaluate:
+For each of those projects, open it, read the detail panel, and scroll "Project Roles" for a named contact (prefer an actual named person over a company-only/undisclosed entry). Extract: Project Name, Reference/ID, Description/Scope, Contact (Name/Title/Phone/Email/Address), Project Stage & Key Dates, and the project's detail-page URL.
+
+Dyntek fit criteria (structural steel wall stiffeners, lintels, framework systems manufacturer):
+- SUITABLE: structural framing, steelwork, modular construction, wall support systems; masonry/brickwork lintels, architectural framing, reinforced structural components; building/civil works requiring specialized steel fabrications/stiffeners.
+- NOT SUITABLE: purely non-structural scope — IT services, cleaning, landscaping, financial auditing, bulk raw-material/commodity supply, lab/testing services, roofing/refurbishment-only, geotechnical slope-only work. Don't keyword-match "steel" alone — check the actual scope.
+
+STEP 4 — Dedup memory (critical, do this every run):
+Read /home/stiflex/stiflexserver/tender-scan/seen.json (keys are "<source>::<reference-or-slug>"). Skip any project whose key "BCI::<id>" is already present — do not re-report it. For every project you evaluate this run (suitable or not), add a new key: "BCI::<project id>": {"title": ..., "source": "BCI", "first_seen": "<today's date, YYYY-MM-DD>"}.
+
+STEP 5 — Report to file (not chat — nobody is watching this run live):
+Append a new dated section to /home/stiflex/stiflexserver/tender-scan/bci-scan-log.md (create the file with a top-level `# BCI Central Scan Log` heading if it doesn't exist yet) with:
+- The date and whether Indonesia was selectable/returned results (flag if the subscription scope seems to have changed).
+- For each NEW SUITABLE project: Reference / Title / Stage & Key Dates / Contact Info / Summary of Work / Fit reasoning / detail-page URL.
+- For NEW NOT SUITABLE projects: a one-line tally of titles.
+- If nothing new was found, one short line saying so.
+- Any anomalies (login dropped mid-run, no named contact found anywhere, page structure surprises).
+
+STEP 6 — Commit and push:
+From /home/stiflex/stiflexserver: `git add tender-scan/seen.json tender-scan/bci-scan-log.md && git commit -m "BCI cron scan: <date>" && git pull --rebase && git push origin main`. Confirm the push succeeded.
+
+Do not create Bitrix24 Contacts/Leads in this run — that stays a manual, interactive step the user does later after reviewing bci-scan-log.md.
