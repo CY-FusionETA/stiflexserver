@@ -14,6 +14,30 @@ Malaysia/Singapore time (UTC+8), Monday–Saturday (no monitoring Sunday), via
 a scheduled Routine — see "Automated schedule" below. Invoke this skill
 manually for an on-demand check or to debug a failure.
 
+## Message format
+
+Every message starts with an emoji that tells you at a glance whether it's
+routine or needs attention:
+
+- 🚚 = plain hourly **notification** — nothing wrong, just where the truck is.
+- 🔔 ALERT = something worth noticing — same-location stall, still at the
+  factory past 8am, or a GPS fetch failure.
+- ✅ = a milestone/status message (round trip done for the day) — good news,
+  not an alert.
+
+The hourly notification is deliberately short — no map link, just the text:
+
+```
+🚚 JTB 9918 — location update
+📍 Jalan Dataran 3,Mukim Tebrau,Johor Baharu,Johor
+🚦 Engine OFF · 0 km/h
+🕐 2026-09-17 15:02:12 (device local time)
+⏸ Parked for 00:59:42
+```
+
+(the "Parked for" line only appears when the engine is off and a parking
+duration is available).
+
 ## Alerts
 
 Besides the plain hourly location update, the script raises three alerts
@@ -21,16 +45,16 @@ into the same chat, and can pause itself for the day:
 
 1. **Same location for over 1 hour** — if the truck hasn't moved more than
    ~150m since the last reading that changed its position, and an hour has
-   passed, it posts `<Alias> -> 1hrs Same location` (once per stop — it
-   won't repeat until the truck moves and then stalls again).
+   passed, it posts `🔔 ALERT: <Alias> -> 1hrs Same location` (once per
+   stop — it won't repeat until the truck moves and then stalls again).
 2. **Still at the factory by 8am** — if it's 8am or later MYT and the truck
    is still within ~400m of the SSB (StiFlex Sdn Bhd) factory, it posts a
-   "Truck still in SSB" alert with the factory address and map link (once
+   `🔔 ALERT: Truck still in SSB` message with the factory address (once
    per day).
 3. **Return-to-Malaysia, pause for the day** — once the truck's reverse-
    geocoded location has mentioned "Singapore" at some point that day, and
    it's later back in Malaysia, engine off, and parked 15+ minutes, the
-   script treats the round trip as done: it posts a "returned, pausing
+   script treats the round trip as done: it posts a `✅` "returned, pausing
    until tomorrow 7am" notice and skips all further checks (silently, no
    Bitrix post) for the rest of that calendar day. Monitoring resumes
    automatically the next day at 7am. **Sundays are skipped entirely** (no

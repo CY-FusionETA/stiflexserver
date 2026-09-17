@@ -33,7 +33,6 @@ const SSB_LAT = 1.502346;
 const SSB_LNG = 103.7210203;
 const SSB_ADDRESS =
   "StiFlex Sdn Bhd, Jalan Tahana, Kawasan Perindustrian Tampoi, Bandar Baru Uda, 81200 Johor Bahru, Johor";
-const SSB_MAPS_LINK = "https://maps.app.goo.gl/3KXQNxB1nNamXtNJA";
 const SSB_RADIUS_M = 400; // factory compound + GPS drift
 
 const SAME_LOCATION_RADIUS_M = 150;
@@ -174,13 +173,11 @@ function fetchTruckLocation() {
 }
 
 function formatLocationMessage(row) {
-  const mapsLink = `https://maps.google.com/?q=${row.Latitude},${row.Longitude}`;
   const ignition = row.acc === "ON" ? "Engine ON" : "Engine OFF";
   const speed = `${Number(row.speed).toFixed(0)} km/h`;
   const lines = [
-    `🚚 [B]${row.Alias || row.deviceName}[/B] — location update`,
+    `🚚 ${row.Alias || row.deviceName} — location update`,
     `📍 ${row.location || "Unknown location"}`,
-    `🗺 ${mapsLink}`,
     `🚦 ${ignition} · ${speed}`,
     `🕐 ${row.gpsDateTime} (device local time)`,
   ];
@@ -229,7 +226,7 @@ async function main() {
     console.error("track-truck failed:", err.message);
     try {
       await postToBitrix(
-        `⚠️ Truck GPS tracking failed to fetch a location update: ${err.message}\nThe share link may have expired and need renewing.`
+        `🔔 ALERT: Truck GPS tracking failed to fetch a location update\n${err.message}\nThe share link may have expired and need renewing.`
       );
     } catch (postErr) {
       console.error("Also failed to post the failure notice to Bitrix24:", postErr.message);
@@ -260,7 +257,7 @@ async function main() {
     const since = new Date(state.sameLocationSince.replace(" ", "T") + "+08:00").getTime();
     if (!Number.isNaN(since) && nowMs - since >= SAME_LOCATION_ALERT_MS) {
       await postToBitrix(
-        `⏱ ${alias} -> 1hrs Same location\n📍 ${row.location || "Unknown location"}\n🗺 https://maps.google.com/?q=${row.Latitude},${row.Longitude}`
+        `🔔 ALERT: ${alias} -> 1hrs Same location\n📍 ${row.location || "Unknown location"}`
       );
       state.sameLocationAlerted = true;
       console.log("Posted same-location (>1hr) alert.");
@@ -273,7 +270,7 @@ async function main() {
   const atSSB = distToSSB <= SSB_RADIUS_M;
   if (hour >= 8 && atSSB && !state.ssbAlerted) {
     await postToBitrix(
-      `🏭 Truck still in SSB (StiFlex factory) as of ${String(hour).padStart(2, "0")}:00\n📍 ${SSB_ADDRESS}\n🗺 ${SSB_MAPS_LINK}`
+      `🔔 ALERT: Truck still in SSB (StiFlex factory) as of ${String(hour).padStart(2, "0")}:00\n📍 ${SSB_ADDRESS}`
     );
     state.ssbAlerted = true;
     console.log("Posted still-at-SSB alert.");
