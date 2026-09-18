@@ -40,14 +40,10 @@ Do not create Bitrix24 Contacts/Leads in this run, and do not use AskUserQuestio
 ---
 
 NOTIFY procedure (use whenever a step above says to notify):
-This is a non-interactive, headless `claude -p` process with no Remote Control pairing of its own, so `PushNotification`'s phone push is unreliable here. Use ALL THREE of these every time you notify, not just one — they're independent and cheap, and each covers a gap the others have:
+The user keeps a long-running interactive Claude Code session named "BCI Central" alive 24/7 on this same droplet (Remote Control, always-on) — that is the intended notification channel:
 
-1. Try `SendMessage` with `to: "BCI Central"` (the name of the main long-running interactive Claude Code session on this machine, if it's currently running — use ListAgents first to check it's listed as a live peer; if it's not running, skip this step, don't treat it as an error) and put the notification text in `message`. This is the preferred channel — if that session is open, the message shows up directly in the user's ongoing chat, which is what they actually want to see. It only works while that session is alive, which is why the other two channels below are not optional fallbacks but always sent too.
-2. Call `PushNotification` anyway (status: "proactive") with the message — free, might reach a phone if Remote Control happens to be active, costs nothing if not.
-3. Also POST to the Stiflex Bitrix24 company Feed directly via the webhook (does not depend on any session/Remote-Control state, and this is a channel the user checks daily regardless of any Claude session's state):
-   ```
-   curl -s -X POST "https://dyntek.bitrix24.com/rest/445/4nzkjjyoek5sz58t/log.blogpost.add" \
-   -H "Content-Type: application/json" \
-   -d '{"POST_TITLE": "BCI Central tender scan", "POST_MESSAGE": "<your message here>", "DEST": ["UA"]}'
-   ```
-   (Fields are top-level, not nested under "fields" — this method's quirk. DEST "UA" = company-wide; use it since we don't have a specific Bitrix user ID to DM for this pipeline.) Note in your message that it's a heads-up, not a doc reference (e.g. "— check bci-scan-log.md in stiflexserver for details").
+1. Call `ListAgents` to confirm "BCI Central" is listed as a live peer session.
+2. Call `SendMessage` with `to: "BCI Central"` and the notification text in `message`. This lands directly in the user's ongoing chat, which is what they want to see.
+3. Also call `PushNotification` (status: "proactive") with the same message as a free extra — costs nothing, may additionally reach a phone if Remote Control happens to be active for that session.
+
+If "BCI Central" is unexpectedly not listed as a live peer (the user said they keep it running continuously, so treat this as a genuine anomaly, not the normal case), still send the `PushNotification`, and add a line to the bci-scan-log.md entry noting the session wasn't found so the user knows this run's notification may not have reached them.

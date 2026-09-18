@@ -49,15 +49,16 @@ that stays logged in:
   invocation). The user later opens a live chat, reads `bci-scan-log.md` (or
   asks Claude to), and tells Claude which projects to turn into Bitrix24
   leads — same manual flow as any other interactive run.
-- Notifications use two channels, since `PushNotification`'s phone push
-  depends on Remote Control being active on that specific session — which a
-  fresh unattended `claude -p` process doesn't have, so it's unreliable here.
-  Every notify-worthy event (logged out, site broken, or new suitable
-  projects found) also posts to the Stiflex Bitrix24 company Feed via
-  `log.blogpost.add` (see `stiflex-bitrix24` skill), which doesn't depend on
-  session state and is a channel the user checks daily. Nothing
-  new/suitable and no problems → no notification at all, just the routine
-  dedup commit.
+- Notifications: the user keeps a long-running interactive Claude Code
+  session named "BCI Central" alive 24/7 on this droplet (Remote Control,
+  always-on), so every notify-worthy event (logged out, site broken, or new
+  suitable projects found) is sent via `SendMessage` to that session — it
+  lands directly in the user's ongoing chat. `PushNotification` is also
+  called as a free extra (may additionally reach a phone if Remote Control
+  happens to be active). If "BCI Central" isn't found running (shouldn't
+  normally happen), that's logged as an anomaly rather than silently
+  dropped. Nothing new/suitable and no problems → no notification at all,
+  just the routine dedup commit.
 
 Fit criteria and output format for the CEDD/URA scan live in the cloud
 Routine's prompt; for BCI they live in `bci-scan-prompt.txt`. Bitrix24 lead
