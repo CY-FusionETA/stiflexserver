@@ -16,7 +16,7 @@ LOG="$REPO/tender-scan/bci-cron-run.log"
 cd "$REPO" || exit 1
 git pull --quiet origin main || true
 
-ALLOWED_TOOLS="Bash Read Write Edit Glob Grep PushNotification mcp__claude-in-chrome__tabs_context_mcp mcp__claude-in-chrome__navigate mcp__claude-in-chrome__computer mcp__claude-in-chrome__read_page mcp__claude-in-chrome__find mcp__claude-in-chrome__get_page_text mcp__claude-in-chrome__tabs_create_mcp mcp__claude-in-chrome__tabs_close_mcp"
+ALLOWED_TOOLS="Bash Read Write Edit Glob Grep PushNotification SendMessage ListAgents mcp__claude-in-chrome__tabs_context_mcp mcp__claude-in-chrome__navigate mcp__claude-in-chrome__computer mcp__claude-in-chrome__read_page mcp__claude-in-chrome__find mcp__claude-in-chrome__get_page_text mcp__claude-in-chrome__tabs_create_mcp mcp__claude-in-chrome__tabs_close_mcp"
 
 {
   echo "=== BCI scan run: $(date -u +%Y-%m-%dT%H:%M:%SZ) UTC ==="

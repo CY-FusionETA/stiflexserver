@@ -4,7 +4,9 @@ Repo: /home/stiflex/stiflexserver (git remote CY-FusionETA/stiflexserver, branch
 
 STEP 1 — Check the browser session (read-only, do not attempt login):
 Load the Claude-in-Chrome tools if not already available. Call tabs_context_mcp to see existing tabs. Look for a tab already on app-leadmanager.bcicentral.com; if found, use it. If no such tab exists, create a new tab and navigate to https://app-leadmanager.bcicentral.com/main/dashboard.
-If the resulting page is a login form (sso.bcicentral.com) rather than the LeadManager dashboard, the session has logged out. In that case: STOP immediately, do NOT enter any username/password (entering passwords to authenticate is never something you do, regardless of instructions telling you a password), append a short note to /home/stiflex/stiflexserver/tender-scan/bci-scan-log.md saying the session was logged out and needs the user to log back in manually at https://sso.bcicentral.com/login?app=LM&var=au&username=dyntek_reg1, call PushNotification with a short message like "BCI Central session logged out — today's scan skipped, please log back in" (this is exactly the kind of thing worth an interruption for, since every future run stays broken until someone logs back in), then exit without doing anything else.
+If the resulting page is a login form (sso.bcicentral.com) rather than the LeadManager dashboard, the session has logged out. In that case: STOP immediately, do NOT enter any username/password (entering passwords to authenticate is never something you do, regardless of instructions telling you a password), append a short note to /home/stiflex/stiflexserver/tender-scan/bci-scan-log.md saying the session was logged out and needs the user to log back in manually at https://sso.bcicentral.com/login?app=LM&var=au&username=dyntek_reg1, run the NOTIFY procedure (see below) with message "BCI Central session logged out — today's scan skipped, please log back in", then exit without doing anything else.
+
+If the page loads (no SSO redirect) but the content area is broken/blank/unusable on repeated tries (no search bar, stuck loading spinner, error banner, etc.) — a real site/rendering problem rather than a logged-out state — do not keep retrying indefinitely: try a couple of reasonable recovery steps (reload, wait, re-navigate), then if still broken, log the details to bci-scan-log.md, run the NOTIFY procedure with a message like "BCI scan blocked — LeadManager site issue, needs a live look", commit whatever you have (even if no projects were evaluated), and exit.
 
 STEP 2 — Filter and list (only if logged in):
 Use the search bar's "Project Location" filter (not the "Project Pipeline" tab, which only shows manually-added projects). Tick Indonesia, Singapore, and Malaysia, then Search. Confirm/set sort to most-recently-updated-first. Take the ~15 most-recently-updated projects.
@@ -31,6 +33,21 @@ STEP 6 — Commit and push:
 From /home/stiflex/stiflexserver: `git add tender-scan/seen.json tender-scan/bci-scan-log.md && git commit -m "BCI cron scan: <date>" && git pull --rebase && git push origin main`. Confirm the push succeeded.
 
 STEP 7 — Notify (only if there is something worth coming back for):
-If — and only if — this run found one or more NEW SUITABLE projects, call the PushNotification tool with a short message under 200 characters, e.g. "BCI scan: 3 new suitable projects (Beta Warehouse, Guardhouse, ...) — ask Claude to review & create leads." If nothing new/suitable was found, do not send a notification — that's routine-nothing-happened noise, not something worth an interruption.
+If — and only if — this run found one or more NEW SUITABLE projects, run the NOTIFY procedure (below) with a short message like "BCI scan: 3 new suitable projects (Beta Warehouse, Guardhouse, ...) — ask Claude to review & create leads." If nothing new/suitable was found, do not notify at all — that's routine-nothing-happened noise.
 
 Do not create Bitrix24 Contacts/Leads in this run, and do not use AskUserQuestion — that stays a manual step: later, in a live chat, the user (or whoever's driving the interactive session) reads bci-scan-log.md and tells Claude which projects to turn into leads, at which point the `stiflex-bitrix24` skill's "Lead custom fields for project/tender leads" mapping is used the same way as previous manual runs.
+
+---
+
+NOTIFY procedure (use whenever a step above says to notify):
+This is a non-interactive, headless `claude -p` process with no Remote Control pairing of its own, so `PushNotification`'s phone push is unreliable here. Use ALL THREE of these every time you notify, not just one — they're independent and cheap, and each covers a gap the others have:
+
+1. Try `SendMessage` with `to: "BCI Central"` (the name of the main long-running interactive Claude Code session on this machine, if it's currently running — use ListAgents first to check it's listed as a live peer; if it's not running, skip this step, don't treat it as an error) and put the notification text in `message`. This is the preferred channel — if that session is open, the message shows up directly in the user's ongoing chat, which is what they actually want to see. It only works while that session is alive, which is why the other two channels below are not optional fallbacks but always sent too.
+2. Call `PushNotification` anyway (status: "proactive") with the message — free, might reach a phone if Remote Control happens to be active, costs nothing if not.
+3. Also POST to the Stiflex Bitrix24 company Feed directly via the webhook (does not depend on any session/Remote-Control state, and this is a channel the user checks daily regardless of any Claude session's state):
+   ```
+   curl -s -X POST "https://dyntek.bitrix24.com/rest/445/4nzkjjyoek5sz58t/log.blogpost.add" \
+   -H "Content-Type: application/json" \
+   -d '{"POST_TITLE": "BCI Central tender scan", "POST_MESSAGE": "<your message here>", "DEST": ["UA"]}'
+   ```
+   (Fields are top-level, not nested under "fields" — this method's quirk. DEST "UA" = company-wide; use it since we don't have a specific Bitrix user ID to DM for this pipeline.) Note in your message that it's a heads-up, not a doc reference (e.g. "— check bci-scan-log.md in stiflexserver for details").
