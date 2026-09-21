@@ -54,8 +54,10 @@ into the same chat, and can pause itself for the day:
    per day).
 3. **Return-to-Malaysia, pause for the day** — once the truck's reverse-
    geocoded location has mentioned "Singapore" at some point that day, and
-   it's later back in Malaysia, engine off, and parked 15+ minutes, the
-   script treats the round trip as done and pauses (see below).
+   it's later back in Malaysia (the very next reading whose location no
+   longer says "Singapore" — it doesn't wait for the truck to park or the
+   engine to go off), the script treats the round trip as done and pauses
+   (see below).
 
 ## Pausing for the day
 
@@ -67,8 +69,9 @@ Monitoring resumes automatically the next day at 7am. Two conditions can
 trigger this, whichever comes first:
 
 - **Round trip done** — the truck's location has mentioned "Singapore" at
-  some point that day, and it's later back in Malaysia, engine off, parked
-  15+ minutes.
+  some point that day, and the next reading no longer does (i.e. it's back
+  in Malaysia). Pauses immediately on that reading, even if still moving —
+  it doesn't wait for the truck to park.
 - **Stopped for 3+ hours anywhere** — the truck hasn't moved more than
   ~150m and the engine's been off for 3+ hours straight, *regardless of
   whether it went to Singapore that day* (e.g. a day it doesn't run, or it

@@ -38,7 +38,6 @@ const SSB_RADIUS_M = 400; // factory compound + GPS drift
 const SAME_LOCATION_RADIUS_M = 150;
 const SAME_LOCATION_ALERT_MS = 60 * 60 * 1000; // 1 hour - informational alert
 const STOPPED_FOR_DAY_MS = 3 * 60 * 60 * 1000; // 3 hours - treat as "done for today" and pause
-const PARKED_MIN_SECONDS = 15 * 60; // require 15+ min parked before calling a return "done"
 
 function nowMYT() {
   // Read UTC getters on a shifted timestamp to get MYT wall-clock fields
@@ -59,16 +58,6 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-function parseDurationToSeconds(duration) {
-  if (!duration || typeof duration !== "string") return 0;
-  // Vendor format is normally "HH:MM:SS", but switches to "N day(s) HH:MM:SS"
-  // once a stop passes 24 hours.
-  const match = duration.match(/^(?:(\d+)\s*days?\s+)?(\d+):(\d+):(\d+)$/);
-  if (!match) return 0;
-  const [, days, h, m, s] = match;
-  return (Number(days) || 0) * 86400 + Number(h) * 3600 + Number(m) * 60 + Number(s);
 }
 
 function defaultState(dateStr) {
@@ -293,18 +282,15 @@ async function main() {
   }
 
   // 4) Singapore/Malaysia return tracking, to know when to pause for the day.
+  // Stop as soon as the truck is confirmed back in Malaysia - don't wait for
+  // it to park; it's done being watched the moment it's off Singapore soil.
   const inSingapore = /singapore/i.test(row.location || "");
   if (inSingapore) {
     state.wasInSingaporeToday = true;
-  } else if (
-    !state.monitoringDone &&
-    state.wasInSingaporeToday &&
-    row.acc !== "ON" &&
-    parseDurationToSeconds(row.parkingDuration) >= PARKED_MIN_SECONDS
-  ) {
+  } else if (!state.monitoringDone && state.wasInSingaporeToday) {
     state.monitoringDone = true;
     await postToBitrix(
-      `✅ ${alias} has returned to Malaysia and is parked. Pausing tracking for today — resuming tomorrow 7am.`
+      `✅ ${alias} has returned to Malaysia. Pausing tracking for today — resuming tomorrow 7am.`
     );
     console.log("Truck returned to Malaysia; monitoring paused for the day.");
   }
