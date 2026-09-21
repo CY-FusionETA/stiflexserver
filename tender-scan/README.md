@@ -54,6 +54,15 @@ that stays logged in:
   never calls AskUserQuestion (there's no one there to answer in a cron
   invocation). Leads use `SOURCE_ID: "UC_9I4QP1"` (the "BCI Central" custom
   source added 2026-09-21), not the old default `"WEB"`.
+- Each new lead also gets a follow-up Bitrix24 Task bound to it
+  (`UF_CRM_TASK: ["L_<lead_id>"]`), routed by the project's country (added
+  2026-09-21): Singapore → Ben See (user 35); Malaysia → Steve Ting (user
+  65); Indonesia → Wei Quan Hoo (user 69) with Steve Ting (65) as accomplice.
+  (Hong Kong routing — email to Ben/Joseph — applies to the separate
+  CEDD/HK cloud routine, not BCI Central, since BCI has no HK coverage; not
+  yet implemented there pending a confirmed outbound-mail method — the
+  Bitrix24 webhook currently has no `mail` scope and no confirmed connected
+  mailbox.)
 - Notifications: the user keeps a long-running interactive Claude Code
   session named "BCI Central" alive 24/7 on this droplet (Remote Control,
   always-on), so every notify-worthy event (logged out, site broken, or new

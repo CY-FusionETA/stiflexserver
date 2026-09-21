@@ -24,7 +24,7 @@ Read /home/stiflex/stiflexserver/tender-scan/seen.json (keys are "<source>::<ref
 STEP 5 — Report to file:
 Append a new dated section to /home/stiflex/stiflexserver/tender-scan/bci-scan-log.md (create the file with a top-level `# BCI Central Scan Log` heading if it doesn't exist yet) with:
 - The date and whether Indonesia was selectable/returned results (flag if the subscription scope seems to have changed).
-- For each NEW SUITABLE project: Reference / Title / Stage & Key Dates / Contact Info / Summary of Work / Fit reasoning / detail-page URL / the Bitrix24 Lead ID it was turned into (from STEP 6).
+- For each NEW SUITABLE project: Reference / Title / Stage & Key Dates / Contact Info / Summary of Work / Fit reasoning / detail-page URL / the Bitrix24 Lead ID and follow-up Task ID it was turned into (from STEP 6), and who the task was routed to.
 - For NEW NOT SUITABLE projects: a one-line tally of titles.
 - If nothing new was found, one short line saying so.
 - Any anomalies (login dropped mid-run, no named contact found anywhere, page structure surprises, a Bitrix24 API call failing).
@@ -51,7 +51,19 @@ For each NEW SUITABLE project found this run:
    -H "Content-Type: application/json" \
    -d '{"fields": {"ENTITY_ID": <lead_id>, "ENTITY_TYPE": "lead", "COMMENT": "BCI Central project URL: <url>"}}'
    ```
-If any of these calls return an error (e.g. `Access denied.` or a field-validation error), don't retry blindly — log the exact error against that project in bci-scan-log.md (so it's visible in STEP 5's report) and continue with the next project; a lead-creation failure for one project should not abort the rest of the run or the seen.json/git steps.
+4. Create a follow-up Task bound to this lead, routed by the project's country (added 2026-09-21, per the user's explicit request):
+   ```
+   curl -s -X POST "https://dyntek.bitrix24.com/rest/445/4nzkjjyoek5sz58t/task.item.add" \
+   -H "Content-Type: application/json" \
+   -d '{"fields": {"TITLE": "New BCI Central lead: <project name>", "DESCRIPTION": "New suitable BCI Central project lead created — please follow up.\nLead: https://dyntek.bitrix24.com/crm/lead/details/<lead_id>/\nProject: <project name>\nLocation: <country>\nStage: <stage>", "RESPONSIBLE_ID": <responsible_id>, "ACCOMPLICES": [<accomplice_id, if any>], "CREATED_BY": 445, "PRIORITY": "1", "UF_CRM_TASK": ["L_<lead_id>"]}}'
+   ```
+   Routing by country (RESPONSIBLE_ID / ACCOMPLICES — omit the ACCOMPLICES key entirely when there's no second person):
+   - Singapore → RESPONSIBLE_ID: 35 (Ben See), no accomplice
+   - Malaysia → RESPONSIBLE_ID: 65 (Steve Ting), no accomplice
+   - Indonesia → RESPONSIBLE_ID: 69 (Wei Quan Hoo), ACCOMPLICES: [65] (Steve Ting)
+   `UF_CRM_TASK: ["L_<lead_id>"]` is what makes the task show up against the lead record itself, not just a standalone task.
+
+If any of these calls return an error (e.g. `Access denied.` or a field-validation error), don't retry blindly — log the exact error against that project in bci-scan-log.md (so it's visible in STEP 5's report) and continue with the next project; a lead-creation or task-creation failure for one project should not abort the rest of the run or the seen.json/git steps.
 
 STEP 7 — Commit and push:
 From /home/stiflex/stiflexserver: `git add tender-scan/seen.json tender-scan/bci-scan-log.md && git commit -m "BCI cron scan: <date>" && git pull --rebase && git push origin main`. Confirm the push succeeded.
