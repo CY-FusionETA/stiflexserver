@@ -36,7 +36,8 @@ const SSB_ADDRESS =
 const SSB_RADIUS_M = 400; // factory compound + GPS drift
 
 const SAME_LOCATION_RADIUS_M = 150;
-const SAME_LOCATION_ALERT_MS = 60 * 60 * 1000; // 1 hour
+const SAME_LOCATION_ALERT_MS = 60 * 60 * 1000; // 1 hour - informational alert
+const STOPPED_FOR_DAY_MS = 3 * 60 * 60 * 1000; // 3 hours - treat as "done for today" and pause
 const PARKED_MIN_SECONDS = 15 * 60; // require 15+ min parked before calling a return "done"
 
 function nowMYT() {
@@ -60,12 +61,14 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-function parseDurationToSeconds(hhmmss) {
-  if (!hhmmss || typeof hhmmss !== "string") return 0;
-  const parts = hhmmss.split(":").map(Number);
-  if (parts.length !== 3 || parts.some(Number.isNaN)) return 0;
-  const [h, m, s] = parts;
-  return h * 3600 + m * 60 + s;
+function parseDurationToSeconds(duration) {
+  if (!duration || typeof duration !== "string") return 0;
+  // Vendor format is normally "HH:MM:SS", but switches to "N day(s) HH:MM:SS"
+  // once a stop passes 24 hours.
+  const match = duration.match(/^(?:(\d+)\s*days?\s+)?(\d+):(\d+):(\d+)$/);
+  if (!match) return 0;
+  const [, days, h, m, s] = match;
+  return (Number(days) || 0) * 86400 + Number(h) * 3600 + Number(m) * 60 + Number(s);
 }
 
 function defaultState(dateStr) {
@@ -241,8 +244,14 @@ async function main() {
 
   const alias = row.Alias || row.deviceName || "Truck";
   const nowMs = Date.now();
+  const hour = today.getUTCHours();
+  const atSSB = haversineMeters(row.Latitude, row.Longitude, SSB_LAT, SSB_LNG) <= SSB_RADIUS_M;
 
-  // 2) Same-location-for-over-1-hour alert.
+  // 2) Same-location tracking: >1hr informational alert, >3hr = call it done
+  // for today (regardless of whether it ever reached Singapore) so we stop
+  // sending repeat "still parked here" updates all the way to midnight. Not
+  // applied while still at the SSB factory - a long dwell there before
+  // departure (loading, paperwork) is normal, not a reason to stop watching.
   const movedFromLast =
     state.lastLat == null ||
     haversineMeters(state.lastLat, state.lastLng, row.Latitude, row.Longitude) >
@@ -253,21 +262,28 @@ async function main() {
     state.lastLng = row.Longitude;
     state.sameLocationSince = row.gpsDateTime;
     state.sameLocationAlerted = false;
-  } else if (state.sameLocationSince && !state.sameLocationAlerted) {
+  } else if (state.sameLocationSince) {
     const since = new Date(state.sameLocationSince.replace(" ", "T") + "+08:00").getTime();
-    if (!Number.isNaN(since) && nowMs - since >= SAME_LOCATION_ALERT_MS) {
+    const stationaryMs = Number.isNaN(since) ? 0 : nowMs - since;
+
+    if (!state.sameLocationAlerted && stationaryMs >= SAME_LOCATION_ALERT_MS) {
       await postToBitrix(
         `🔔 ALERT: ${alias} -> 1hrs Same location\n📍 ${row.location || "Unknown location"}`
       );
       state.sameLocationAlerted = true;
       console.log("Posted same-location (>1hr) alert.");
     }
+
+    if (!state.monitoringDone && !atSSB && row.acc !== "ON" && stationaryMs >= STOPPED_FOR_DAY_MS) {
+      state.monitoringDone = true;
+      await postToBitrix(
+        `✅ ${alias} has been stopped at the same location for 3+ hours — treating it as done for today. Pausing tracking, resuming tomorrow 7am.`
+      );
+      console.log("Truck stationary 3+ hours; monitoring paused for the day.");
+    }
   }
 
   // 3) Still-at-SSB-by-0800 alert.
-  const hour = today.getUTCHours();
-  const distToSSB = haversineMeters(row.Latitude, row.Longitude, SSB_LAT, SSB_LNG);
-  const atSSB = distToSSB <= SSB_RADIUS_M;
   if (hour >= 8 && atSSB && !state.ssbAlerted) {
     await postToBitrix(
       `🔔 ALERT: Truck still in SSB (StiFlex factory) as of ${String(hour).padStart(2, "0")}:00\n📍 ${SSB_ADDRESS}`
@@ -281,6 +297,7 @@ async function main() {
   if (inSingapore) {
     state.wasInSingaporeToday = true;
   } else if (
+    !state.monitoringDone &&
     state.wasInSingaporeToday &&
     row.acc !== "ON" &&
     parseDurationToSeconds(row.parkingDuration) >= PARKED_MIN_SECONDS
