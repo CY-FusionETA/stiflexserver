@@ -1,4 +1,4 @@
-Run today's BCI Central LeadManager tender/project scan for Dyntek/Stiflex. This is an unattended, non-interactive weekday ~7am (Singapore/Malaysia time, UTC+8) cron run — there is no user available to answer questions, so do not use AskUserQuestion and do not create Bitrix24 leads; just report findings to a log file for the user to review later.
+Run today's BCI Central LeadManager tender/project scan for Dyntek/Stiflex. This is an unattended, non-interactive daily ~5am (Singapore/Malaysia time, UTC+8) cron run — there is no user available to answer questions, so do not use AskUserQuestion. Unlike earlier versions of this task, you SHOULD create Bitrix24 leads directly for new suitable projects (see STEP 6) — the user has explicitly pre-authorized this for this recurring automated run, no confirmation needed.
 
 Repo: /home/stiflex/stiflexserver (git remote CY-FusionETA/stiflexserver, branch main). Run `git pull` first.
 
@@ -19,23 +19,45 @@ Dyntek fit criteria (structural steel wall stiffeners, lintels, framework system
 - NOT SUITABLE: purely non-structural scope — IT services, cleaning, landscaping, financial auditing, bulk raw-material/commodity supply, lab/testing services, roofing/refurbishment-only, geotechnical slope-only work. Don't keyword-match "steel" alone — check the actual scope.
 
 STEP 4 — Dedup memory (critical, do this every run):
-Read /home/stiflex/stiflexserver/tender-scan/seen.json (keys are "<source>::<reference-or-slug>"). Skip any project whose key "BCI::<id>" is already present — do not re-report it. For every project you evaluate this run (suitable or not), add a new key: "BCI::<project id>": {"title": ..., "source": "BCI", "first_seen": "<today's date, YYYY-MM-DD>"}.
+Read /home/stiflex/stiflexserver/tender-scan/seen.json (keys are "<source>::<reference-or-slug>"). Skip any project whose key "BCI::<id>" is already present — do not re-report or re-process it (do not create a duplicate lead for it either). For every NEW project you evaluate this run (suitable or not), add a new key: "BCI::<project id>": {"title": ..., "source": "BCI", "first_seen": "<today's date, YYYY-MM-DD>"} — do this for every new project regardless of suitability, right after you evaluate it (not just at the end), so a mid-run failure never causes duplicate lead creation on a retry.
 
-STEP 5 — Report to file (not chat — nobody is watching this run live):
+STEP 5 — Report to file:
 Append a new dated section to /home/stiflex/stiflexserver/tender-scan/bci-scan-log.md (create the file with a top-level `# BCI Central Scan Log` heading if it doesn't exist yet) with:
 - The date and whether Indonesia was selectable/returned results (flag if the subscription scope seems to have changed).
-- For each NEW SUITABLE project: Reference / Title / Stage & Key Dates / Contact Info / Summary of Work / Fit reasoning / detail-page URL.
+- For each NEW SUITABLE project: Reference / Title / Stage & Key Dates / Contact Info / Summary of Work / Fit reasoning / detail-page URL / the Bitrix24 Lead ID it was turned into (from STEP 6).
 - For NEW NOT SUITABLE projects: a one-line tally of titles.
 - If nothing new was found, one short line saying so.
-- Any anomalies (login dropped mid-run, no named contact found anywhere, page structure surprises).
+- Any anomalies (login dropped mid-run, no named contact found anywhere, page structure surprises, a Bitrix24 API call failing).
 
-STEP 6 — Commit and push:
+STEP 6 — Create Bitrix24 leads automatically for every NEW SUITABLE project (no confirmation needed, this is pre-authorized):
+For each NEW SUITABLE project found this run:
+1. Create a Contact via the webhook (split the extracted contact name into NAME/LAST_NAME; if there's no named person, only a company/undisclosed entry, use NAME:"" and LAST_NAME:"<company name>"):
+   ```
+   curl -s -X POST "https://dyntek.bitrix24.com/rest/445/4nzkjjyoek5sz58t/crm.contact.add" \
+   -H "Content-Type: application/json" \
+   -d '{"fields": {"NAME": "<first>", "LAST_NAME": "<last/company>", "EMAIL": [{"VALUE": "<email>", "VALUE_TYPE": "WORK"}], "PHONE": [{"VALUE": "<phone>", "VALUE_TYPE": "WORK"}]}}'
+   ```
+   (Omit EMAIL/PHONE array entirely if that data wasn't available — don't send empty strings.)
+2. Create the Lead, linking that Contact:
+   ```
+   curl -s -X POST "https://dyntek.bitrix24.com/rest/445/4nzkjjyoek5sz58t/crm.lead.add" \
+   -H "Content-Type: application/json" \
+   -d '{"fields": {"TITLE": "<project name>", "STATUS_ID": "NEW", "SOURCE_ID": "UC_9I4QP1", "CONTACT_ID": <contact_id>, "UF_CRM_1688432651494": "<country item ID>", "UF_CRM_1677821874480": {"ADDRESS_1": "<address line>", "CITY": "<city>", "COUNTRY": "<country>"}}}'
+   ```
+   Country item IDs: Singapore=2619, Malaysia=2621, Indonesia=3095. `SOURCE_ID` is "UC_9I4QP1" (the "BCI Central" custom source — NOT "WEB", that was the old default before this source existed).
+3. Post the project's BCI detail-page URL as a timeline comment on the new lead:
+   ```
+   curl -s -X POST "https://dyntek.bitrix24.com/rest/445/4nzkjjyoek5sz58t/crm.timeline.comment.add" \
+   -H "Content-Type: application/json" \
+   -d '{"fields": {"ENTITY_ID": <lead_id>, "ENTITY_TYPE": "lead", "COMMENT": "BCI Central project URL: <url>"}}'
+   ```
+If any of these calls return an error (e.g. `Access denied.` or a field-validation error), don't retry blindly — log the exact error against that project in bci-scan-log.md (so it's visible in STEP 5's report) and continue with the next project; a lead-creation failure for one project should not abort the rest of the run or the seen.json/git steps.
+
+STEP 7 — Commit and push:
 From /home/stiflex/stiflexserver: `git add tender-scan/seen.json tender-scan/bci-scan-log.md && git commit -m "BCI cron scan: <date>" && git pull --rebase && git push origin main`. Confirm the push succeeded.
 
-STEP 7 — Notify (only if there is something worth coming back for):
-If — and only if — this run found one or more NEW SUITABLE projects, run the NOTIFY procedure (below) with a short message like "BCI scan: 3 new suitable projects (Beta Warehouse, Guardhouse, ...) — ask Claude to review & create leads." If nothing new/suitable was found, do not notify at all — that's routine-nothing-happened noise.
-
-Do not create Bitrix24 Contacts/Leads in this run, and do not use AskUserQuestion — that stays a manual step: later, in a live chat, the user (or whoever's driving the interactive session) reads bci-scan-log.md and tells Claude which projects to turn into leads, at which point the `stiflex-bitrix24` skill's "Lead custom fields for project/tender leads" mapping is used the same way as previous manual runs.
+STEP 8 — Notify (only if there is something worth coming back for):
+If this run found one or more NEW SUITABLE projects, run the NOTIFY procedure (below) with a message summarizing what was detected AND created, e.g. "BCI scan: created 3 Bitrix24 leads — Beta Warehouse (#791), Guardhouse (#792), Linkway Shelter (#793). Details in bci-scan-log.md." If nothing new/suitable was found, do not notify at all — that's routine-nothing-happened noise.
 
 ---
 
