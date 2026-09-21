@@ -85,11 +85,32 @@ repeat all the way to midnight once the truck is clearly done for the day —
 the window is 7am onward, ending whenever the truck actually stops, not at
 a fixed clock time.
 
+### Overriding a wrong auto-pause (e.g. a breakdown)
+
+Both pause conditions are heuristics based only on GPS data, so they can't
+tell "done for the day, parked happily" apart from "stuck somewhere for a
+real reason" (breakdown, accident, roadblock) — both look identical from
+the outside: stationary, not in Singapore. If the truck is stopped for a
+reason that isn't "done for the day" and tracking should keep going, set
+`forceMonitoring: true` in `scripts/gps-tracker/state.json` (alongside
+resetting `monitoringDone` to `false` if it already tripped) and commit it.
+While `forceMonitoring` is true for that date, both pause conditions are
+disabled — the script keeps posting hourly (and the same-location alert
+still fires normally) until either the truck moves on and the situation
+resolves itself, or someone flips `forceMonitoring` back to `false`/removes
+the override. It resets automatically at midnight along with the rest of
+the day's state.
+
 State (last position, alert flags, whether the day is paused) is
 kept in `scripts/gps-tracker/state.json`, next to this script. The script
 commits and pushes that file back to the repo itself after each run — so
 state persists across the fresh session each hourly firing gets. It resets
-automatically whenever the stored date is not today (MYT).
+automatically whenever the stored date is not today (MYT). It always
+commits/pushes to the `claude/background-task-ywnfle` branch specifically
+(hardcoded as `STATE_BRANCH` in the script), not whatever branch the local
+checkout happens to be on — fresh sessions on this self-hosted pool have
+sometimes landed on an unrelated auto-named branch instead, which used to
+make state pushes fail silently.
 
 ## How it works
 

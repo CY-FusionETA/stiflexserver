@@ -24,6 +24,13 @@ const BITRIX_WEBHOOK =
   "https://dyntek.bitrix24.com/rest/445/4nzkjjyoek5sz58t";
 const BITRIX_CHAT_DIALOG_ID = process.env.BITRIX_CHAT_DIALOG_ID || "chat8035"; // Logistics Tracking Unit
 
+// The branch state.json lives on. Hardcoded rather than read from the local
+// checkout's current branch: fresh sessions on this self-hosted pool have
+// sometimes checked out an unrelated auto-named branch instead of this one,
+// which made the old "git branch --show-current" approach push state to (or
+// try to pull from) a branch that doesn't exist on origin.
+const STATE_BRANCH = process.env.STATE_BRANCH || "claude/background-task-ywnfle";
+
 const WS_TIMEOUT_MS = 15000;
 const MYT_OFFSET_MS = 8 * 60 * 60 * 1000; // Malaysia/Singapore, fixed UTC+8, no DST
 
@@ -70,6 +77,7 @@ function defaultState(dateStr) {
     ssbAlerted: false,
     wasInSingaporeToday: false,
     monitoringDone: false,
+    forceMonitoring: false,
   };
 }
 
@@ -109,8 +117,11 @@ function saveAndPushState(state) {
     const branch = execFileSync("git", ["branch", "--show-current"], { cwd: repoRoot })
       .toString()
       .trim();
-    git(["pull", "--rebase", "--autostash", "origin", branch]);
-    git(["push", "origin", branch]);
+    if (branch !== STATE_BRANCH) {
+      console.error(`Warning: local checkout is on "${branch}", not "${STATE_BRANCH}" - pushing to ${STATE_BRANCH} explicitly.`);
+    }
+    git(["pull", "--rebase", "--autostash", "origin", STATE_BRANCH]);
+    git(["push", "origin", `HEAD:${STATE_BRANCH}`]);
   } catch (e) {
     console.error("Warning: failed to commit/push tracker state:", e.message);
   }
@@ -263,7 +274,13 @@ async function main() {
       console.log("Posted same-location (>1hr) alert.");
     }
 
-    if (!state.monitoringDone && !atSSB && row.acc !== "ON" && stationaryMs >= STOPPED_FOR_DAY_MS) {
+    if (
+      !state.monitoringDone &&
+      !state.forceMonitoring &&
+      !atSSB &&
+      row.acc !== "ON" &&
+      stationaryMs >= STOPPED_FOR_DAY_MS
+    ) {
       state.monitoringDone = true;
       await postToBitrix(
         `✅ ${alias} has been stopped at the same location for 3+ hours — treating it as done for today. Pausing tracking, resuming tomorrow 7am.`
@@ -287,7 +304,7 @@ async function main() {
   const inSingapore = /singapore/i.test(row.location || "");
   if (inSingapore) {
     state.wasInSingaporeToday = true;
-  } else if (!state.monitoringDone && state.wasInSingaporeToday) {
+  } else if (!state.monitoringDone && !state.forceMonitoring && state.wasInSingaporeToday) {
     state.monitoringDone = true;
     await postToBitrix(
       `✅ ${alias} has returned to Malaysia. Pausing tracking for today — resuming tomorrow 7am.`
