@@ -78,7 +78,11 @@ trigger this, whichever comes first:
   parks somewhere for the rest of the day without a Singapore leg). This
   does **not** apply while still at the SSB factory itself — a long dwell
   there before departure (loading, paperwork) is normal and shouldn't stop
-  monitoring before the truck has even left.
+  monitoring before the truck has even left. The 3-hour clock is clamped to
+  never start counting before 7am MYT that day, even if the device's own
+  last-fix timestamp is from overnight (e.g. it hasn't moved since 11:59pm)
+  — otherwise the very first check of the day could see 7+ hours already
+  "stationary" and pause before the truck even had a chance to leave.
 
 This is what keeps the chat from getting an hourly "still parked here"
 repeat all the way to midnight once the truck is clearly done for the day —

@@ -45,6 +45,7 @@ const SSB_RADIUS_M = 400; // factory compound + GPS drift
 const SAME_LOCATION_RADIUS_M = 150;
 const SAME_LOCATION_ALERT_MS = 60 * 60 * 1000; // 1 hour - informational alert
 const STOPPED_FOR_DAY_MS = 3 * 60 * 60 * 1000; // 3 hours - treat as "done for today" and pause
+const MONITORING_WINDOW_START_HOUR = 7; // MYT - stationary-time clocks never count time before this
 
 function nowMYT() {
   // Read UTC getters on a shifted timestamp to get MYT wall-clock fields
@@ -264,7 +265,15 @@ async function main() {
     state.sameLocationAlerted = false;
   } else if (state.sameLocationSince) {
     const since = new Date(state.sameLocationSince.replace(" ", "T") + "+08:00").getTime();
-    const stationaryMs = Number.isNaN(since) ? 0 : nowMs - since;
+    // The device's own last-fix timestamp can predate today's monitoring
+    // window (e.g. it hasn't moved since last night, so it's still
+    // reporting an 11:59pm fix at 7am) - clamp so overnight parking never
+    // counts toward today's stationary clocks and falsely trips them the
+    // instant monitoring resumes, before the truck's even had a chance to
+    // move.
+    const windowStartMs = new Date(`${dateStr}T${String(MONITORING_WINDOW_START_HOUR).padStart(2, "0")}:00:00+08:00`).getTime();
+    const effectiveSince = Number.isNaN(since) ? nowMs : Math.max(since, windowStartMs);
+    const stationaryMs = nowMs - effectiveSince;
 
     if (!state.sameLocationAlerted && stationaryMs >= SAME_LOCATION_ALERT_MS) {
       await postToBitrix(
