@@ -78,11 +78,14 @@ trigger this, whichever comes first:
   parks somewhere for the rest of the day without a Singapore leg). This
   does **not** apply while still at the SSB factory itself — a long dwell
   there before departure (loading, paperwork) is normal and shouldn't stop
-  monitoring before the truck has even left. The 3-hour clock is clamped to
-  never start counting before 7am MYT that day, even if the device's own
-  last-fix timestamp is from overnight (e.g. it hasn't moved since 11:59pm)
-  — otherwise the very first check of the day could see 7+ hours already
-  "stationary" and pause before the truck even had a chance to leave.
+  monitoring before the truck has even left. It also doesn't start counting
+  until the truck has moved at least once that day: the very first reading
+  each day only sets a baseline position, silently, with no clock running —
+  so the truck sitting at its overnight spot for a few hours right as
+  monitoring opens at 7am is never mistaken for "stopped for 3 hours,
+  done for today." Only once the truck actually departs (a real >~150m
+  move) does the same-location tracking start watching for its *next*
+  stop.
 
 This is what keeps the chat from getting an hourly "still parked here"
 repeat all the way to midnight once the truck is clearly done for the day —
