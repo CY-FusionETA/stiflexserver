@@ -214,6 +214,19 @@ async function main() {
     return;
   }
 
+  // The cron's hour list (0-16,23 UTC) includes a slot at local midnight
+  // (00:00) - it exists only so the 7am-midnight window fully covers the
+  // previous evening, but since dateStr has already rolled over to the new
+  // calendar date by then, treating it as a normal run would reset state
+  // (see loadState) and post a fresh, unpaused update right at 12am even on
+  // a day that had already correctly paused hours earlier. Skip it outright
+  // - the day's state should only actually start at 7am.
+  const hour = today.getUTCHours();
+  if (hour === 0) {
+    console.log("Midnight slot (MYT) - not the start of the monitoring day, skipping quietly.");
+    return;
+  }
+
   const state = loadState(dateStr);
 
   if (state.monitoringDone) {
@@ -245,7 +258,6 @@ async function main() {
 
   const alias = row.Alias || row.deviceName || "Truck";
   const nowMs = Date.now();
-  const hour = today.getUTCHours();
   const atSSB = haversineMeters(row.Latitude, row.Longitude, SSB_LAT, SSB_LNG) <= SSB_RADIUS_M;
 
   // 2) Same-location tracking: >1hr informational alert, >3hr = call it done

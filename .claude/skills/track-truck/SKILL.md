@@ -173,14 +173,22 @@ admin (Joseph) to re-grant `im` + `socialnetwork`.
 A Routine named **"Truck GPS Tracking - Logistics Tracking Unit"** (self-
 hosted on the FusionETA Server 2 pool) fires hourly, 7:00am–12:00am
 (midnight) Malaysia/Singapore time (UTC+8), every day of the week, running
-this same script in a fresh session each time. The cron's upper bound
-(hourly checks up to midnight) is just a safety ceiling in case a day's
-stop-detection never fires (see "Pausing for the day" above) — in normal
-operation the script itself stops posting well before midnight, once the
-truck is done for the day. The cron runs all 7 days rather than trying to
-exclude Sunday via day-of-week — Sunday-skipping is done inside the script
-instead, because the local 7am–midnight window straddles two different UTC
-calendar days, which makes a UTC day-of-week filter unable to cleanly
-represent "skip Sunday, local time" without dropping Monday's 7am or
-Saturday's evening slots. To change the schedule or investigate a missed
+this same script in a fresh session each time. The script itself always
+skips the literal midnight (00:00) slot with no Bitrix post at all — it
+exists only so the cron's hour range technically reaches "up to midnight,"
+but by then the calendar date has already rolled over, and treating it as
+a normal run would reset state and post a fresh update even on a day that
+had already correctly paused hours earlier (this happened in practice: a
+plain location update went out at 00:13 on a day that had paused at
+15:13 the evening before). The day's state now only actually starts at
+7am. The rest of the cron's upper bound (hourly checks up to 11pm) is
+still just a safety ceiling in case a day's stop-detection never fires
+(see "Pausing for the day" above) — in normal operation the script itself
+stops posting well before that, once the truck is done for the day. The
+cron runs all 7 days rather than trying to exclude Sunday via day-of-week
+— Sunday-skipping is done inside the script instead, because the local
+7am–midnight window straddles two different UTC calendar days, which
+makes a UTC day-of-week filter unable to cleanly represent "skip Sunday,
+local time" without dropping Monday's 7am or Saturday's evening slots. To
+change the schedule or investigate a missed
 run, use `list_triggers` / `update_trigger` on that Routine.
