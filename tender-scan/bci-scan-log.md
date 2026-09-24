@@ -137,3 +137,15 @@ CCTV supply & install for Government Offices, Majlis Perbandaran Muar (security/
 - Cookie/session-TTL investigation: `document.cookie` access is blocked by the browser automation tool itself ("[BLOCKED: Cookie/query string data]") — could not determine the actual session cookie expiry this way. Did not hit a fresh login form this run (already logged in), so couldn't check for a "Remember me" option either. This remains unresolved — the recurring ~1-2 day logout pattern (5 incidents in 8 days as of today) is still unexplained.
 
 Committed and pushed alongside this log entry: `tender-scan/seen.json` (16 new `BCI::` keys, 55 total).
+
+## 2026-09-25 (blocked — Claude-in-Chrome browser extension not connected)
+
+**Status: blocked before reaching the LeadManager site at all.** This is a different failure mode than the prior SSO-logout or page-rendering incidents: `tabs_context_mcp` returned "Browser extension is not connected. Please ensure the Claude browser extension is installed and running... and that you are logged into claude.ai with the same account as Claude Code" on every attempt. No page was ever loaded (not the LeadManager dashboard, not the SSO login form), so this is not a credential/session issue.
+
+Retried 3 times (immediate x2, then after a 15s wait) — same error each time, so stopped retrying per the "don't retry indefinitely" guidance and escalated instead.
+
+**No projects were evaluated this run.** `seen.json` unchanged (still 55 `BCI::` keys / last entry 2026-09-24). No Bitrix24 API calls were made.
+
+**Action needed:** the Chrome browser extension itself appears to be down/disconnected on this droplet (separate from the BCI Central login session) — needs a live look to confirm Chrome + the extension are running and connected before the next scheduled run.
+
+**Notify anomaly:** the "BCI Central" always-on session was not found via `ListAgents` (no peer sessions reachable at all) — `SendMessage` was skipped. A `PushNotification` was sent instead, but Remote Control was inactive so the mobile push did not go through either. This run's notification may not have reached the user through any channel — worth checking in manually.
