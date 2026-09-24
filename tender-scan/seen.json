@@ -1,6 +1,6 @@
 {
   "CEDD::GE-2026-18": {
-    "title": "Provision of Concrete Testing Services for the Public Works Laboratories – 2027 Package 1 (Term Contract)",
+    "title": "Provision of Concrete Testing Services for the Public Works Laboratories \u2013 2027 Package 1 (Term Contract)",
     "source": "CEDD",
     "first_seen": "2026-09-15"
   },
@@ -193,5 +193,85 @@
     "title": "RESTAURANT | KARAOKE LOUNGE - alterations & additions (Mestiz Holdings, Kuala Lumpur City)",
     "source": "BCI",
     "first_seen": "2026-09-22"
+  },
+  "BCI::132429003": {
+    "title": "HOUSES (23) - new - 2 storey - ASAS JANA: HOUSES AT MUKIM LABU (LOT 2239)",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::133367003": {
+    "title": "CLASSROOMS (5) | WORKSHOPS (2) for SCHOOL - new - single storey - SMK DATO ALI AHMAD",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::136379003": {
+    "title": "CLOSED CIRCUIT TELEVISION (CCTV) for GOVERNMENT OFFICES - supply & install - MAJLIS PERBANDARAN MUAR",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::136378003": {
+    "title": "BUS STATION - reparation - TERMINAL BENTAYAN",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::131549003": {
+    "title": "HOUSES (23) - new - single storey - SHANG HEIGHT REALTY: HOUSES AT LOT 1222 (PHASE 2)",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::101161003": {
+    "title": "HOUSES (112) - new - 2 storey | MULTI-STOREY CAR PARK - new - 9 storey - CREATIVE CULTURAL SQUARE PHASE 1",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::136377003": {
+    "title": "HOUSES (237) - new - 2 & 3 storey - CREATIVE CULTURAL SQUARE PHASE 2-4",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::145265004": {
+    "title": "OFFICES / SHOPS (19) - new - 3 & 4 storey - STRAITS COMMERCIAL (PT 2418)",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::35785006": {
+    "title": "RESEARCH INSTITUTE - upgrade - MARINE AQUACULTURE CENTRE",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::59731006": {
+    "title": "SEWERS - new - TENGAH NEW TOWN AREA SEWERS SCHEDULE II",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::144597004": {
+    "title": "SHOPS (30) - new - single storey - AMAN SETIA DEVELOPMENT: SHOPS AT BANDAR AMANJAYA",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::33986006": {
+    "title": "PUBLIC HOUSING APARTMENTS (485) - new - PROJECT BT (ANG MO KIO NEIGHBOURHOOD 1 CONTRACT 44)",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::144594004": {
+    "title": "HOUSES (905) | SHOPS (23) - new - 2 storey - AMAN SETIA DEVELOPMENT: RESIDENTIAL & SHOPS AT BANDAR AMANJAYA",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::151001004": {
+    "title": "PRODUCTION AREA | WORKERS DORMITORY (180 workers) for FACTORY - alterations & additions",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::139845004": {
+    "title": "HOUSES (465) | TOWNHOUSES (334) | SHOPS (48) - new - AMAN SETIA DEVELOPMENT: MIXED DEVELOPMENT AT SUNGAI PETANI",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
+  },
+  "BCI::46518006": {
+    "title": "RESIDENTIAL ESTATE - refurbishment - NEIGHBOURHOOD RENEWAL PROGRAMME BATCH 12",
+    "source": "BCI",
+    "first_seen": "2026-09-24"
   }
 }

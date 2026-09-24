@@ -89,3 +89,51 @@ Restaurants/Club Bayou Walk Langkawi (F&B fit-out, construction not until 2028+)
 ### Anomaly
 
 Project 135307003 (Clinic/Apartments(7) redevelopment, Tebedu, Sarawak — marked NOT SUITABLE above) shows **"Associated Team: Dyntek Pte Ltd"** in BCI Central's own Opportunity Details panel — meaning Dyntek's sales team already has this project flagged as an opportunity directly within BCI Central's platform (Opportunity Value/Quoted/Order fields all blank, so no recorded progress yet). This is separate from our `seen.json`/Bitrix24 automation and wasn't something this scan created — flagging in case it's useful context for whoever owns that BCI Central account-side tracking.
+
+## 2026-09-23 (blocked — session logged out)
+
+**Status: scan skipped. Session was logged out (redirected to https://sso.bcicentral.com/login?app=lm instead of the LeadManager dashboard). No login attempted per policy. User needs to log back in manually at https://sso.bcicentral.com/login?app=LM&var=au&username=dyntek_reg1. No projects evaluated this run.**
+
+## 2026-09-24 (blocked — session logged out)
+
+**Status: scan skipped. No projects evaluated.**
+
+Navigating to `https://app-leadmanager.bcicentral.com/main/dashboard` redirected to the SSO login page (`https://sso.bcicentral.com/login?app=lm`) with a "Login To Your Account" form (username/password fields pre-filled by browser autofill, but not submitted). This is the logged-out case — per instructions, no credentials were entered and the Login button was not clicked.
+
+**Action needed:** please log back in manually at https://sso.bcicentral.com/login?app=LM&var=au&username=dyntek_reg1, then the next scheduled run should pick back up normally.
+
+Note: this is at least the fourth blocked run in ~8 days (2026-09-17 rendering failure, 2026-09-21 logged-out + separate same-day rendering failure, 2026-09-22 logged-out, 2026-09-23 logged-out, and now this logged-out incident) — the session appears to be dropping between runs on a recurring basis and likely needs a more durable login/session-refresh strategy rather than relying on manual re-login each morning.
+
+## 2026-09-24 (completed — user logged back in, manual run requested)
+
+**Status: completed successfully.** Indonesia/Malaysia/Singapore all selectable and in-subscription (158,804 matching projects) — no scope change. Note: the "In Your Subscription" location list now also shows Cambodia, Hong Kong SAR, and Macau SAR as options, not just ID/MY/SG — subscription coverage may have expanded; only ID/MY/SG were ticked per the standing scope.
+
+16 projects evaluated (10 new suitable, 6 new not suitable).
+
+### New SUITABLE projects (10) — all converted to Bitrix24 Leads + routed Tasks, zero API errors
+
+| Project | Ref | Country | Contact | Lead | Task | Routed to |
+|---|---|---|---|---|---|---|
+| Houses (23), Asas Jana, Mukim Labu, Sepang | 132429003 | MY | Mohd Faharuddin bin Amran, Director, URC Planners Sdn Bhd | #813 | #2421 | Steve Ting |
+| Classrooms(5)/Workshops(2), SMK Dato Ali Ahmad, Kangar | 133367003 | MY | Ashaari bin Mohamaed Hanafi, QS, JKR Malaysia (govt) | #815 | #2423 | Steve Ting |
+| Bus Station reparation, Terminal Bentayan, Muar — explicit "Structural works"/"Concrete Walls" in scope despite "reparation" label | 136378003 | MY | Muhammad Maszwin bin Mustar, Head of Procurement, Majlis Perbandaran Muar | #817 | #2425 | Steve Ting |
+| Houses (23), Shang Height Realty, Lot 1222 Phase 2, Malacca | 131549003 | MY | Tang Lee Yuan, Architect, My Tag Solution Sdn Bhd | #819 | #2427 | Steve Ting |
+| Houses(112)/Multi-storey Car Park(9-storey), Creative Cultural Square Phase 1, Malacca | 101161003 | MY | SF Ong, Project Executive, KT Lee Setia Development | #821 | #2429 | Steve Ting |
+| Houses (237), Creative Cultural Square Phase 2-4, Malacca (sister phase of above) | 136377003 | MY | SF Ong (same as above) | #823 | #2431 | Steve Ting |
+| Offices/Shops(19), Straits Commercial, Bandar Melaka | 145265004 | MY | KT Lee Development Sdn Bhd (company-only, no named person) | #825 | #2433 | Steve Ting |
+| Shops(30), Aman Setia, Bandar Amanjaya, Sungai Petani | 144597004 | MY | Amry bin Zamry, QS, Aman Setia Development | #827 | #2435 | Steve Ting |
+| Houses(905)/Shops(23), Aman Setia, Bandar Amanjaya, Sungai Petani | 144594004 | MY | Amry bin Zamry (same as above) | #829 | #2437 | Steve Ting |
+| Houses(465)/Townhouses(334)/Shops(48), Aman Setia Mixed Development, Sungai Petani | 139845004 | MY | Amry bin Zamry (same as above) | #831 | #2439 | Steve Ting |
+
+All 10 routed to Steve Ting since every suitable project today happened to be in Malaysia — no Singapore or Indonesia suitable projects this run.
+
+### New NOT SUITABLE (6, one-line tally)
+
+CCTV supply & install for Government Offices, Majlis Perbandaran Muar (security/IT equipment, non-structural); Sewers new, Tengah New Town Singapore (pure civil/utility infrastructure); Research Institute upgrade, Marine Aquaculture Centre, St John's Island Singapore (Research Centre/Laboratory subcategory — matches lab/testing exclusion); Public Housing Apartments(485), Project BT Ang Mo Kio Singapore (Construction stage, current subcontractor tenders are for ceiling/doors/facade/landscaping/paint/playground only — structural phase already passed); Production Area/Workers Dormitory alterations, Bukit Batok Singapore (building elements list is cabling/floor sealant/doors/paint/glazing only — no structural framing items despite being a physical extension); Residential Estate refurbishment, Neighbourhood Renewal Programme Batch 12, Singapore (refurbishment-only per criteria, despite one minor "Roof Framing, Clips, Brackets" line item among mostly M&E/finishing scope).
+
+### Notes
+
+- Direct URL navigation to a project detail page (`/main/project/<id>` without `?versionNumber=N`) does not render — must use the exact `?versionNumber=N` query param (found via the row's link href) or click through from the search results list.
+- Cookie/session-TTL investigation: `document.cookie` access is blocked by the browser automation tool itself ("[BLOCKED: Cookie/query string data]") — could not determine the actual session cookie expiry this way. Did not hit a fresh login form this run (already logged in), so couldn't check for a "Remember me" option either. This remains unresolved — the recurring ~1-2 day logout pattern (5 incidents in 8 days as of today) is still unexplained.
+
+Committed and pushed alongside this log entry: `tender-scan/seen.json` (16 new `BCI::` keys, 55 total).
