@@ -37,17 +37,23 @@ The hourly notification is deliberately short — no map link, just the text:
 ```
 
 (the "Parked for" line only appears when the engine is off and a parking
-duration is available).
+duration is available; if the truck is stationary but the engine is still
+ON — e.g. idling, stuck, waiting somewhere — the line instead reads
+"⏸ Same location for Xh Ym", using our own tracked duration rather than the
+vendor's engine-off-only parkingDuration, so a stall is visible in the
+plain update too, not just in an alert).
 
 ## Alerts
 
 Besides the plain hourly location update, the script raises three alerts
 into the same chat, and can pause itself for the day:
 
-1. **Same location for over 1 hour** — if the truck hasn't moved more than
-   ~150m since the last reading that changed its position, and an hour has
-   passed, it posts `🔔 ALERT: <Alias> -> 1hrs Same location` (once per
-   stop — it won't repeat until the truck moves and then stalls again).
+1. **Same location, escalating hourly** — if the truck hasn't moved more
+   than ~150m since the last reading that changed its position, it posts
+   `🔔 ALERT: <Alias> -> Nhrs Same location` once per full hour it stays
+   there (1hr, 2hr, 3hr, 4hr, ...) — it keeps escalating for as long as the
+   truck stays put, rather than firing once and going quiet, so a stall
+   that keeps dragging on keeps getting flagged.
 2. **Still at the factory by 8am** — if it's 8am or later MYT and the truck
    is still within ~400m of the SSB (StiFlex Sdn Bhd) factory, it posts a
    `🔔 ALERT: Truck still in SSB` message with the factory address (once

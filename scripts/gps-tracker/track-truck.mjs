@@ -67,13 +67,20 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+function formatDurationHM(ms) {
+  const totalMinutes = Math.floor(ms / 60000);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 function defaultState(dateStr) {
   return {
     date: dateStr,
     lastLat: null,
     lastLng: null,
     sameLocationSince: null,
-    sameLocationAlerted: false,
+    sameLocationAlertHours: 0,
     hasMovedToday: false,
     ssbAlerted: false,
     wasInSingaporeToday: false,
@@ -176,7 +183,7 @@ function fetchTruckLocation() {
   });
 }
 
-function formatLocationMessage(row) {
+function formatLocationMessage(row, stationaryForMs) {
   const ignition = row.acc === "ON" ? "Engine ON" : "Engine OFF";
   const speed = `${Number(row.speed).toFixed(0)} km/h`;
   const lines = [
@@ -185,7 +192,12 @@ function formatLocationMessage(row) {
     `🚦 ${ignition} · ${speed}`,
     `🕐 ${row.gpsDateTime} (device local time)`,
   ];
-  if (row.acc !== "ON" && row.parkingDuration) {
+  if (stationaryForMs != null) {
+    // Our own tracked "same spot" duration - works regardless of engine
+    // state, unlike the vendor's parkingDuration which is tied to their own
+    // notion of "parked" (usually engine-off only).
+    lines.push(`⏸ Same location for ${formatDurationHM(stationaryForMs)}`);
+  } else if (row.acc !== "ON" && row.parkingDuration) {
     lines.push(`⏸ Parked for ${row.parkingDuration}`);
   }
   return lines.join("\n");
@@ -252,45 +264,52 @@ async function main() {
     return;
   }
 
-  // 1) Normal hourly location update.
-  await postToBitrix(formatLocationMessage(row));
-  console.log("Posted truck location update for " + (row.Alias || row.deviceName));
-
   const alias = row.Alias || row.deviceName || "Truck";
   const nowMs = Date.now();
   const atSSB = haversineMeters(row.Latitude, row.Longitude, SSB_LAT, SSB_LNG) <= SSB_RADIUS_M;
 
-  // 2) Same-location tracking: >1hr informational alert, >3hr = call it done
-  // for today (regardless of whether it ever reached Singapore) so we stop
-  // sending repeat "still parked here" updates all the way to midnight. Not
-  // applied while still at the SSB factory - a long dwell there before
-  // departure (loading, paperwork) is normal, not a reason to stop watching.
-  // Also not applied until the truck has actually moved at least once today
-  // - the truck sitting at its overnight spot right as monitoring opens at
-  // 7am isn't "stopped for hours", it just hasn't started its day yet, and
-  // shouldn't immediately count down toward an alert or an auto-pause.
+  // Same-location tracking, computed before the hourly post so it can show
+  // the stationary duration in that message too - not just in a separate
+  // alert. Not applied until the truck has actually moved at least once
+  // today - the truck sitting at its overnight spot right as monitoring
+  // opens at 7am isn't "stopped for hours", it just hasn't started its day
+  // yet, and shouldn't immediately count down toward an alert or a pause.
   const isFirstReadingToday = state.lastLat == null;
   const movedFromLast =
     isFirstReadingToday ||
     haversineMeters(state.lastLat, state.lastLng, row.Latitude, row.Longitude) >
       SAME_LOCATION_RADIUS_M;
 
+  let stationaryMs = null;
   if (movedFromLast) {
     state.lastLat = row.Latitude;
     state.lastLng = row.Longitude;
     state.sameLocationSince = row.gpsDateTime;
-    state.sameLocationAlerted = false;
+    state.sameLocationAlertHours = 0;
     if (!isFirstReadingToday) state.hasMovedToday = true;
   } else if (state.hasMovedToday && state.sameLocationSince) {
     const since = new Date(state.sameLocationSince.replace(" ", "T") + "+08:00").getTime();
-    const stationaryMs = Number.isNaN(since) ? 0 : nowMs - since;
+    stationaryMs = Number.isNaN(since) ? 0 : nowMs - since;
+  }
 
-    if (!state.sameLocationAlerted && stationaryMs >= SAME_LOCATION_ALERT_MS) {
+  // 1) Normal hourly location update - shows how long it's been in the same
+  // spot whenever that applies, so a multi-hour stall reads as one at a
+  // glance instead of looking like a routine, no-news update every time.
+  await postToBitrix(formatLocationMessage(row, stationaryMs));
+  console.log("Posted truck location update for " + (row.Alias || row.deviceName));
+
+  if (stationaryMs != null) {
+    // 2) Same-location alert - escalates every full hour it stays stationary
+    // (1hr, 2hr, 3hr, ...) rather than firing once and going quiet, so a
+    // stall that keeps dragging on keeps getting flagged.
+    const hoursStationary = Math.floor(stationaryMs / SAME_LOCATION_ALERT_MS);
+    const alertedHours = Number(state.sameLocationAlertHours) || 0;
+    if (hoursStationary >= 1 && hoursStationary > alertedHours) {
       await postToBitrix(
-        `🔔 ALERT: ${alias} -> 1hrs Same location\n📍 ${row.location || "Unknown location"}`
+        `🔔 ALERT: ${alias} -> ${hoursStationary}hrs Same location\n📍 ${row.location || "Unknown location"}`
       );
-      state.sameLocationAlerted = true;
-      console.log("Posted same-location (>1hr) alert.");
+      state.sameLocationAlertHours = hoursStationary;
+      console.log(`Posted same-location (${hoursStationary}hr) alert.`);
     }
 
     if (
