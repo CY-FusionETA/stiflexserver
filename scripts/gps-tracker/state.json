@@ -3,7 +3,7 @@
   "lastLat": 1.275365,
   "lastLng": 103.847724,
   "sameLocationSince": "2026-09-25 13:14:53",
-  "sameLocationAlerted": false,
+  "sameLocationAlerted": true,
   "hasMovedToday": true,
   "ssbAlerted": false,
   "wasInSingaporeToday": true,
