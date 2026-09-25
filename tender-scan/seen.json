@@ -273,5 +273,15 @@
     "title": "RESIDENTIAL ESTATE - refurbishment - NEIGHBOURHOOD RENEWAL PROGRAMME BATCH 12",
     "source": "BCI",
     "first_seen": "2026-09-24"
+  },
+  "CEDD::YL-2024-04-F1-F4": {
+    "title": "Yuen Long South New Development Area Second Phase Development – Contract 6 – Framework Contract for Site Formation and Engineering Infrastructure Works (Contract F1 – F4)",
+    "source": "CEDD",
+    "first_seen": "2026-09-25"
+  },
+  "CEDD::YL-2025-02": {
+    "title": "Development of the Loop – Eastern Connection Road",
+    "source": "CEDD",
+    "first_seen": "2026-09-25"
   }
 }
