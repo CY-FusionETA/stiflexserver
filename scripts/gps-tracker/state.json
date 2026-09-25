@@ -8,5 +8,6 @@
   "ssbAlerted": false,
   "wasInSingaporeToday": true,
   "monitoringDone": false,
-  "forceMonitoring": false
+  "forceMonitoring": false,
+  "sameLocationAlertHours": 3
 }
