@@ -149,3 +149,15 @@ Retried 3 times (immediate x2, then after a 15s wait) — same error each time, 
 **Action needed:** the Chrome browser extension itself appears to be down/disconnected on this droplet (separate from the BCI Central login session) — needs a live look to confirm Chrome + the extension are running and connected before the next scheduled run.
 
 **Notify anomaly:** the "BCI Central" always-on session was not found via `ListAgents` (no peer sessions reachable at all) — `SendMessage` was skipped. A `PushNotification` was sent instead, but Remote Control was inactive so the mobile push did not go through either. This run's notification may not have reached the user through any channel — worth checking in manually.
+
+## 2026-09-26 (blocked — Claude-in-Chrome browser extension not connected, second consecutive day)
+
+**Status: blocked before reaching the LeadManager site at all.** Same failure signature as yesterday (2026-09-25): `tabs_context_mcp` returned "Browser extension is not connected. Please ensure the Claude browser extension is installed and running... and that you are logged into claude.ai with the same account as Claude Code" on every attempt. No page was ever loaded.
+
+Retried 3 times (two immediate, then again after a 15s wait) — identical error each time, so stopped retrying and escalated instead.
+
+**No projects were evaluated this run.** `seen.json` unchanged (still 55 `BCI::` keys / last entry 2026-09-24). No Bitrix24 API calls were made.
+
+**Action needed:** this is now two consecutive blocked runs with the identical "extension not connected" error (2026-09-25, 2026-09-26) — this looks like a persistent outage on the droplet rather than a one-off blip. Someone should check that Chrome and the Claude-in-Chrome extension are actually running and connected on this machine before the next scheduled run; if the underlying browser/Chrome process needs a restart, this likely won't self-resolve.
+
+**Notify anomaly:** the "BCI Central" always-on session was again not found via `ListAgents` (no peer sessions reachable at all) — `SendMessage` was skipped. A `PushNotification` was sent instead but reported "Mobile push not sent (Remote Control inactive)" — this run's notification almost certainly did not reach the user through any channel, same as yesterday.
