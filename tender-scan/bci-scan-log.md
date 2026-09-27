@@ -174,3 +174,15 @@ Retried 3 times (two immediate, then again after a 15s wait) — identical error
 
 **Notify anomaly:** see below.
 The "BCI Central" always-on session was again not found via `ListAgents` (no peer sessions reachable at all) — `SendMessage` was skipped. A `PushNotification` was sent instead but reported "Mobile push not sent (Remote Control inactive)" — this run's notification almost certainly did not reach the user through any channel, same as the prior two blocked runs.
+
+## 2026-09-28 (blocked — Claude-in-Chrome browser extension not connected, fourth consecutive day)
+
+**Status: blocked before reaching the LeadManager site at all.** Same failure signature as the prior three runs (2026-09-25, 2026-09-26, 2026-09-27): `tabs_context_mcp` returned "Browser extension is not connected. Please ensure the Claude browser extension is installed and running... and that you are logged into claude.ai with the same account as Claude Code" on every attempt. No page was ever loaded (not the LeadManager dashboard, not the SSO login form).
+
+Retried 2 times — identical error each time, so stopped retrying (per the established pattern from prior incidents, further retries don't resolve this within a run) and escalated instead.
+
+**No projects were evaluated this run.** `seen.json` unchanged. No Bitrix24 API calls were made.
+
+**Action needed:** this is now four consecutive blocked runs with the identical "extension not connected" error (2026-09-25 through 2026-09-28). The Chrome browser + Claude-in-Chrome extension need a manual restart/reconnect on this machine — this has not self-resolved across four days and won't self-resolve between scheduled runs.
+
+**Notify anomaly:** the "BCI Central" always-on session was again not found via `ListAgents` (no peer sessions reachable at all) — `SendMessage` was skipped. `PushNotification` was attempted but not sent (tool reported the terminal is active so a notification would be redundant) — this run's notification did not reach the user through any additional channel beyond this session's own output.
