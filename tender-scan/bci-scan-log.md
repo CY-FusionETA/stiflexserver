@@ -198,3 +198,16 @@ Retried 3 times (two immediate, one after a 15s wait, including with `createIfEm
 **Action needed:** this is now five consecutive blocked runs with the identical "extension not connected" error (2026-09-25 through 2026-09-29). This is a persistent outage on the droplet, not a transient blip — Chrome + the Claude-in-Chrome extension need a manual restart/reconnect on this machine. It has not self-resolved across five days and won't self-resolve between scheduled runs.
 
 **Notify anomaly:** the "BCI Central" always-on session was again not found via `ListAgents` (no peer sessions reachable at all) — `SendMessage` was skipped. `PushNotification` was attempted but reported "Mobile push not sent (Remote Control inactive)" — this run's notification did not reach the user through any additional channel beyond this log entry.
+
+## 2026-09-30 (blocked — Claude-in-Chrome browser extension not connected, sixth consecutive day)
+
+**Status: blocked before reaching the LeadManager site at all.** Same failure signature as the prior five runs (2026-09-25 through 2026-09-29): `tabs_context_mcp` returned "Browser extension is not connected. Please ensure the Claude browser extension is installed and running... and that you are logged into claude.ai with the same account as Claude Code" on every attempt. `list_connected_browsers` confirmed zero connected Chrome extensions. No page was ever loaded (not the LeadManager dashboard, not the SSO login form).
+
+Retried twice (immediate, then again after checking `list_connected_browsers`) — identical error each time, so stopped retrying per the established pattern and escalated instead.
+
+**No projects were evaluated this run.** `seen.json` unchanged. No Bitrix24 API calls were made.
+
+**Action needed:** this is now six consecutive blocked runs with the identical "extension not connected" error (2026-09-25 through 2026-09-30). This is a persistent outage on the droplet, not a transient blip — Chrome + the Claude-in-Chrome extension need a manual restart/reconnect on this machine. It has not self-resolved across six days and won't self-resolve between scheduled runs.
+
+**Notify anomaly:** see below.
+The "BCI Central" always-on session was again not found via `ListAgents` (no peer sessions reachable at all) — `SendMessage` was skipped. `PushNotification` was attempted but reported "Mobile push not sent (Remote Control inactive)" — this run's notification did not reach the user through any additional channel beyond this log entry.
