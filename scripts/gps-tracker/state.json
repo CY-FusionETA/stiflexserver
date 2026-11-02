@@ -7,6 +7,6 @@
   "hasMovedToday": true,
   "ssbAlerted": true,
   "wasInSingaporeToday": false,
-  "monitoringDone": false,
+  "monitoringDone": true,
   "forceMonitoring": false
 }
