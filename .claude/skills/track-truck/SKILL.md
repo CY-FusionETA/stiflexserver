@@ -1,6 +1,6 @@
 ---
 name: track-truck
-description: Fetch the live GPS position of the Malaysia->Singapore truck from the TDT GPS share link and post a status update into the Bitrix24 "Logistics Tracking Unit" workgroup chat. Use whenever asked to check the truck's location, post a GPS update, or troubleshoot the automated hourly tracking.
+description: Fetch the live GPS position of the Malaysia->Singapore truck from the TDT GPS share link and post a status update into the Bitrix24 "Logistics Tracking Unit" workgroup chat. Use whenever asked to check the truck's location, post a GPS update, or troubleshoot the automated tracking.
 ---
 
 # Truck GPS Tracker
@@ -9,24 +9,24 @@ Posts a one-off location update for the Malaysia -> Singapore truck into the
 Bitrix24 **Logistics Tracking Unit** workgroup chat (`chat8035`, Bitrix24
 workgroup ID 47, members include Yanyi Yap / user ID 5).
 
-This same logic runs automatically every hour from 7am Malaysia/Singapore
-time (UTC+8) until the truck stops for the day (see "Pausing for the day"
-below), Monday–Saturday (no monitoring Sunday), via a scheduled Routine —
-see "Automated schedule" below. Invoke this skill manually for an on-demand
-check or to debug a failure.
+This same logic runs automatically every 30 minutes from 7:30am sharp
+Malaysia/Singapore time (UTC+8) until the truck stops for the day (see
+"Pausing for the day" below), Monday–Saturday (no monitoring Sunday), via a
+scheduled Routine — see "Automated schedule" below. Invoke this skill
+manually for an on-demand check or to debug a failure.
 
 ## Message format
 
 Every message starts with an emoji that tells you at a glance whether it's
 routine or needs attention:
 
-- 🚚 = plain hourly **notification** — nothing wrong, just where the truck is.
+- 🚚 = plain **notification** — nothing wrong, just where the truck is.
 - 🔔 ALERT = something worth noticing — same-location stall, still at the
   factory past 8am, or a GPS fetch failure.
 - ✅ = a milestone/status message (round trip done for the day) — good news,
   not an alert.
 
-The hourly notification is deliberately short — no map link, just the text:
+Each notification is deliberately short — no map link, just the text:
 
 ```
 🚚 JTB 9918 — location update
@@ -45,7 +45,7 @@ plain update too, not just in an alert).
 
 ## Alerts
 
-Besides the plain hourly location update, the script raises three alerts
+Besides the plain location update, the script raises three alerts
 into the same chat, and can pause itself for the day:
 
 1. **Same location, escalating hourly** — if the truck hasn't moved more
@@ -67,11 +67,11 @@ into the same chat, and can pause itself for the day:
 
 ## Pausing for the day
 
-There's no fixed end-of-day cutoff — the schedule just keeps firing hourly
-until the truck itself has clearly stopped, at which point the script posts
-a `✅` "pausing until tomorrow 7am" notice and goes quiet (no more Bitrix
-posts, not even a plain hourly one) for the rest of that calendar day.
-Monitoring resumes automatically the next day at 7am. Two conditions can
+There's no fixed end-of-day cutoff — the schedule just keeps firing every
+30 minutes until the truck itself has clearly stopped, at which point the
+script posts a `✅` "pausing until tomorrow 7am" notice and goes quiet (no
+more Bitrix posts, not even a plain one) for the rest of that calendar day.
+Monitoring resumes automatically the next day at 7:30am. Two conditions can
 trigger this, whichever comes first:
 
 - **Round trip done** — the truck's location has mentioned "Singapore" at
@@ -93,10 +93,10 @@ trigger this, whichever comes first:
   move) does the same-location tracking start watching for its *next*
   stop.
 
-This is what keeps the chat from getting an hourly "still parked here"
-repeat all the way to midnight once the truck is clearly done for the day —
-the window is 7am onward, ending whenever the truck actually stops, not at
-a fixed clock time.
+This is what keeps the chat from getting a repeated "still parked here"
+update every 30 minutes all the way to midnight once the truck is clearly
+done for the day — the window is 7:30am onward, ending whenever the truck
+actually stops, not at a fixed clock time.
 
 ### Overriding a wrong auto-pause (e.g. a breakdown)
 
@@ -108,7 +108,7 @@ reason that isn't "done for the day" and tracking should keep going, set
 `forceMonitoring: true` in `scripts/gps-tracker/state.json` (alongside
 resetting `monitoringDone` to `false` if it already tripped) and commit it.
 While `forceMonitoring` is true for that date, both pause conditions are
-disabled — the script keeps posting hourly (and the same-location alert
+disabled — the script keeps posting every 30 minutes (and the same-location alert
 still fires normally) until either the truck moves on and the situation
 resolves itself, or someone flips `forceMonitoring` back to `false`/removes
 the override. It resets automatically at midnight along with the rest of
@@ -117,7 +117,7 @@ the day's state.
 State (last position, alert flags, whether the day is paused) is
 kept in `scripts/gps-tracker/state.json`, next to this script. The script
 commits and pushes that file back to the repo itself after each run — so
-state persists across the fresh session each hourly firing gets. It resets
+state persists across the fresh session each firing gets. It resets
 automatically whenever the stored date is not today (MYT). It always
 commits/pushes to the `claude/background-task-ywnfle` branch specifically
 (hardcoded as `STATE_BRANCH` in the script), not whatever branch the local
@@ -177,24 +177,36 @@ admin (Joseph) to re-grant `im` + `socialnetwork`.
 ## Automated schedule
 
 A Routine named **"Truck GPS Tracking - Logistics Tracking Unit"** (self-
-hosted on the FusionETA Server 2 pool) fires hourly, 7:00am–12:00am
-(midnight) Malaysia/Singapore time (UTC+8), every day of the week, running
-this same script in a fresh session each time. The script itself always
-skips the literal midnight (00:00) slot with no Bitrix post at all — it
-exists only so the cron's hour range technically reaches "up to midnight,"
-but by then the calendar date has already rolled over, and treating it as
-a normal run would reset state and post a fresh update even on a day that
+hosted on the FusionETA Server 2 pool) fires every 30 minutes, cron
+`0,30 0-16,23 * * *` (UTC) = 7:00am–12:00am (midnight) Malaysia/Singapore
+time (UTC+8) every half hour, every day of the week, running this same
+script in a fresh session each time. The cron's actual window is 7:00am
+(not 7:30) because a standard 5-field cron can't express ":30 only at this
+one hour, :00 and :30 at every other hour" in one expression - the script
+itself skips the 7:00am slot so monitoring effectively starts at 7:30am
+sharp (see main()'s minute check). It likewise always skips the literal
+midnight (00:00 and 00:30) slots with no Bitrix post at all — they exist
+only so the cron's hour range technically reaches "up to midnight," but by
+then the calendar date has already rolled over, and treating them as a
+normal run would reset state and post a fresh update even on a day that
 had already correctly paused hours earlier (this happened in practice: a
-plain location update went out at 00:13 on a day that had paused at
-15:13 the evening before). The day's state now only actually starts at
-7am. The rest of the cron's upper bound (hourly checks up to 11pm) is
-still just a safety ceiling in case a day's stop-detection never fires
-(see "Pausing for the day" above) — in normal operation the script itself
-stops posting well before that, once the truck is done for the day. The
-cron runs all 7 days rather than trying to exclude Sunday via day-of-week
-— Sunday-skipping is done inside the script instead, because the local
-7am–midnight window straddles two different UTC calendar days, which
-makes a UTC day-of-week filter unable to cleanly represent "skip Sunday,
-local time" without dropping Monday's 7am or Saturday's evening slots. To
-change the schedule or investigate a missed
-run, use `list_triggers` / `update_trigger` on that Routine.
+plain location update went out at 00:13 on a day that had paused at 15:13
+the evening before). The day's state only actually starts at 7:30am. The
+rest of the cron's upper bound (checks up to 11:30pm) is still just a
+safety ceiling in case a day's stop-detection never fires (see "Pausing
+for the day" above) — in normal operation the script itself stops posting
+well before that, once the truck is done for the day (back in Malaysia
+from Singapore, or stationary 3+ hours). The cron runs all 7 days rather
+than trying to exclude Sunday via day-of-week — Sunday-skipping is done
+inside the script instead, because the local 7am–midnight window straddles
+two different UTC calendar days, which makes a UTC day-of-week filter
+unable to cleanly represent "skip Sunday, local time" without dropping
+Monday's 7am or Saturday's evening slots.
+
+This Routine was created via the claude.ai web UI/API, not by an agent, so
+it can only be edited there (`https://claude.ai/code/routines/<id>`) — an
+agent gets `this routine was created via "http_api"` if it tries
+`update_trigger` on it. To change the schedule yourself, paste
+`0,30 0-16,23 * * *` into its trigger field; `list_triggers` still works
+for checking status or finding the trigger ID, and investigating a missed
+run.

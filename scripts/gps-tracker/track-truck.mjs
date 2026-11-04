@@ -239,6 +239,16 @@ async function main() {
     return;
   }
 
+  // Monitoring now starts at 7:30am sharp, not 7:00am. The cron still fires
+  // a 7:00am slot too (its minute field covers :00 and :30 every half hour,
+  // reusing the same hour range as before) - skip just that one slot rather
+  // than trying to express ":30 only at this one hour" in the cron itself.
+  const minute = today.getUTCMinutes();
+  if (hour === 7 && minute < 30) {
+    console.log("7:00am slot (MYT) - monitoring starts at 7:30am sharp, skipping quietly.");
+    return;
+  }
+
   const state = loadState(dateStr);
 
   if (state.monitoringDone) {
@@ -268,7 +278,7 @@ async function main() {
   const nowMs = Date.now();
   const atSSB = haversineMeters(row.Latitude, row.Longitude, SSB_LAT, SSB_LNG) <= SSB_RADIUS_M;
 
-  // Same-location tracking, computed before the hourly post so it can show
+  // Same-location tracking, computed before the location post so it can show
   // the stationary duration in that message too - not just in a separate
   // alert. Not applied until the truck has actually moved at least once
   // today - the truck sitting at its overnight spot right as monitoring
@@ -292,7 +302,7 @@ async function main() {
     stationaryMs = Number.isNaN(since) ? 0 : nowMs - since;
   }
 
-  // 1) Normal hourly location update - shows how long it's been in the same
+  // 1) Normal location update - shows how long it's been in the same
   // spot whenever that applies, so a multi-hour stall reads as one at a
   // glance instead of looking like a routine, no-news update every time.
   await postToBitrix(formatLocationMessage(row, stationaryMs));
