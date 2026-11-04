@@ -125,6 +125,20 @@ checkout happens to be on — fresh sessions on this self-hosted pool have
 sometimes landed on an unrelated auto-named branch instead, which used to
 make state pushes fail silently.
 
+Since two scheduled tasks now share this one state.json (see "Automated
+schedule" below - one fires on the hour, one on the half-hour), every run
+also pulls the latest committed state.json straight from `origin` before
+reading it (`syncStateFromOrigin()`), overwriting whatever's in the local
+checkout first. This is what keeps the two tasks coordinated instead of
+duplicating each other — e.g. whichever one notices the truck is back in
+Malaysia first sets `monitoringDone` and posts the "returned, pausing"
+message; without always reading the latest state first, the other task
+could miss that and post its own duplicate "returned" message 30 minutes
+apart. It's also what fixes the "stale local checkout" problem we've hit
+firsthand developing this script across runner moves - a run that starts
+on an out-of-date clone no longer matters, since the state file itself
+gets refreshed regardless.
+
 ## How it works
 
 The GPS provider (`live.tdtgps.com`, "AoooG" tracking platform) does not
@@ -176,37 +190,61 @@ admin (Joseph) to re-grant `im` + `socialnetwork`.
 
 ## Automated schedule
 
-A Routine named **"Truck GPS Tracking - Logistics Tracking Unit"** (self-
-hosted on the FusionETA Server 2 pool) fires every 30 minutes, cron
-`0,30 0-16,23 * * *` (UTC) = 7:00am–12:00am (midnight) Malaysia/Singapore
-time (UTC+8) every half hour, every day of the week, running this same
-script in a fresh session each time. The cron's actual window is 7:00am
-(not 7:30) because a standard 5-field cron can't express ":30 only at this
-one hour, :00 and :30 at every other hour" in one expression - the script
-itself skips the 7:00am slot so monitoring effectively starts at 7:30am
-sharp (see main()'s minute check). It likewise always skips the literal
-midnight (00:00 and 00:30) slots with no Bitrix post at all — they exist
-only so the cron's hour range technically reaches "up to midnight," but by
-then the calendar date has already rolled over, and treating them as a
-normal run would reset state and post a fresh update even on a day that
-had already correctly paused hours earlier (this happened in practice: a
-plain location update went out at 00:13 on a day that had paused at 15:13
-the evening before). The day's state only actually starts at 7:30am. The
-rest of the cron's upper bound (checks up to 11:30pm) is still just a
-safety ceiling in case a day's stop-detection never fires (see "Pausing
+Two scheduled tasks on the FusionETA Server 2 self-hosted pool together
+give a 30-minute cadence, 7am–midnight Malaysia/Singapore time (UTC+8),
+every day of the week, each running this same script in a fresh session:
+
+- **"Truck GPS Tracking - Logistics Tracking Unit"** — cron
+  `30 0-16,23 * * *` (UTC), fires on the half-hour (7:30am, 8:30am, ...,
+  11:30pm, then 00:30 which the script always skips - see below).
+- **"Truck GPS Tracking - Logistics Tracking Unit (on-the-hour)"** — cron
+  `0 0-16,23 * * *` (UTC), fires on the hour (7:00am, 8:00am, ..., 11:00pm,
+  then 00:00 which the script always skips).
+
+There are two tasks, not one, because this platform caps a single
+scheduled task's cron at once per hour ("Cloud tasks run at most once per
+hour") - `0,30 0-16,23 * * *` on one task gets rejected outright. Splitting
+the :00 and :30 slots across two separate tasks is the only way around
+that cap, and they interleave into an effective 30-minute check.
+
+Both tasks point at the exact same repo, branch, and `scripts/gps-tracker/
+track-truck.mjs` script, and critically **share the same `state.json`**
+(see "Pausing for the day" above) via `syncStateFromOrigin()` - this is
+what stops them from double-posting. For example, around the time the
+truck crosses back into Malaysia, whichever task happens to fire first
+notices it, sets `monitoringDone`, and posts the one "returned, pausing"
+message; the other task's next firing (at most 30 minutes later) pulls
+that same state first and sees `monitoringDone` already set, so it stays
+silent instead of posting a second "returned" message of its own.
+
+The 7:00am slot (from the on-the-hour task) is always skipped by the
+script, so monitoring effectively starts at 7:30am sharp rather than 7:00
+— a standard cron can't express ":30 only at 7am, :00 and :30 everywhere
+else" in one expression, so skipping it in code was simpler than trying to
+special-case the cron. The script likewise always skips the literal
+midnight (00:00 and 00:30) slots entirely, with no Bitrix post and no
+state read/write at all — they exist only so each task's hour range
+technically reaches "up to midnight," but by then the calendar date has
+already rolled over, and treating them as a normal run would reset state
+and post a fresh update even on a day that had already correctly paused
+hours earlier (this happened in practice: a plain location update went
+out at 00:13 on a day that had paused at 15:13 the evening before). The
+rest of each task's upper bound (checks up to 11:30pm/11pm) is still just
+a safety ceiling in case a day's stop-detection never fires (see "Pausing
 for the day" above) — in normal operation the script itself stops posting
 well before that, once the truck is done for the day (back in Malaysia
-from Singapore, or stationary 3+ hours). The cron runs all 7 days rather
+from Singapore, or stationary 3+ hours). Both crons run all 7 days rather
 than trying to exclude Sunday via day-of-week — Sunday-skipping is done
 inside the script instead, because the local 7am–midnight window straddles
 two different UTC calendar days, which makes a UTC day-of-week filter
 unable to cleanly represent "skip Sunday, local time" without dropping
 Monday's 7am or Saturday's evening slots.
 
-This Routine was created via the claude.ai web UI/API, not by an agent, so
-it can only be edited there (`https://claude.ai/code/routines/<id>`) — an
+Both tasks were created via the claude.ai web UI, not by an agent, so they
+can only be edited there (`https://claude.ai/code/routines/<id>`) — an
 agent gets `this routine was created via "http_api"` if it tries
-`update_trigger` on it. To change the schedule yourself, paste
-`0,30 0-16,23 * * *` into its trigger field; `list_triggers` still works
-for checking status or finding the trigger ID, and investigating a missed
+`update_trigger` on either one, and gets `routines targeting a self-hosted
+environment cannot be created via this tool` if it tries to create a new
+one on this pool via `create_trigger`. `list_triggers` still works for
+checking status or finding either trigger's ID, and investigating a missed
 run.

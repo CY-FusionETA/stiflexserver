@@ -100,6 +100,31 @@ function loadState(dateStr) {
   }
 }
 
+function syncStateFromOrigin() {
+  // Two scheduled tasks (on-the-hour and on-the-half-hour) share this same
+  // state.json to stay coordinated - e.g. whichever one notices the truck
+  // is back in Malaysia first sets monitoringDone, so the other skips
+  // instead of posting its own duplicate "returned" message. That only
+  // works if each run starts from the latest state, not whatever's left
+  // over in its local checkout (which has been stale before, across
+  // runner moves) - so pull the current committed state.json straight from
+  // origin before loadState() reads it, overwriting the local copy.
+  const repoRoot = path.resolve(__dirname, "..", "..");
+  const relPath = path.relative(repoRoot, STATE_PATH);
+  try {
+    execFileSync("git", ["fetch", "origin", STATE_BRANCH], { cwd: repoRoot, stdio: "pipe" });
+    const remote = execFileSync("git", ["show", `origin/${STATE_BRANCH}:${relPath}`], {
+      cwd: repoRoot,
+    });
+    writeFileSync(STATE_PATH, remote);
+  } catch (e) {
+    console.error(
+      "Warning: couldn't sync state.json from origin before this run, using local copy:",
+      e.message
+    );
+  }
+}
+
 function saveAndPushState(state) {
   writeFileSync(STATE_PATH, JSON.stringify(state, null, 2) + "\n");
   const repoRoot = path.resolve(__dirname, "..", "..");
@@ -249,6 +274,7 @@ async function main() {
     return;
   }
 
+  syncStateFromOrigin();
   const state = loadState(dateStr);
 
   if (state.monitoringDone) {
