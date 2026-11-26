@@ -1,12 +1,12 @@
 {
   "date": "2026-11-26",
-  "lastLat": 1.275627,
-  "lastLng": 103.625769,
-  "sameLocationSince": "2026-11-26 14:33:07",
+  "lastLat": 1.526605,
+  "lastLng": 103.722498,
+  "sameLocationSince": "2026-11-26 16:33:04",
   "sameLocationAlertHours": 0,
   "hasMovedToday": true,
   "ssbAlerted": false,
   "wasInSingaporeToday": true,
-  "monitoringDone": false,
+  "monitoringDone": true,
   "forceMonitoring": false
 }
